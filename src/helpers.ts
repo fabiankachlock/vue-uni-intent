@@ -1,4 +1,4 @@
-import type { GamepadShortcut, KeyShortcut, MouseShortcut } from "./types";
+import type { GamepadShortcut, KeyShortcut, MouseShortcut } from './types'
 
 // TODO: Nintendo Controllers have inverted A/B and X/Y buttons
 
@@ -21,9 +21,9 @@ export const GamepadButton = {
   DPadLeft: 14,
   DPadRight: 15,
   Home: 16,
-} as const;
+} as const
 
-export type GamepadButtonName = keyof typeof GamepadButton;
+export type GamepadButtonName = keyof typeof GamepadButton
 
 /** Standard-mapping gamepad axis indices. */
 export const GamepadAxis = {
@@ -31,26 +31,26 @@ export const GamepadAxis = {
   LeftY: 1,
   RightX: 2,
   RightY: 3,
-} as const;
+} as const
 
-export type GamepadButtonRef = number | GamepadButtonName;
+export type GamepadButtonRef = number | GamepadButtonName
 
 /** Resolve a button name or raw index to the standard-mapping index. */
 export function resolveGamepadButton(button: GamepadButtonRef): number {
-  return typeof button === "number" ? button : GamepadButton[button];
+  return typeof button === 'number' ? button : GamepadButton[button]
 }
 
 /** Build a keyboard shortcut descriptor: `key("Escape")`, `key("s", { ctrl: true })`. */
 export function key(
   key: string,
-  mods?: Pick<KeyShortcut, "ctrl" | "shift" | "alt" | "meta">,
+  mods?: Pick<KeyShortcut, 'ctrl' | 'shift' | 'alt' | 'meta'>,
 ): KeyShortcut {
-  return { key, ...mods };
+  return { key, ...mods }
 }
 
 /** Build a gamepad shortcut descriptor: `button("B")` or `button(1)`. */
 export function button(button: GamepadButtonRef): GamepadShortcut {
-  return { button: resolveGamepadButton(button) };
+  return { button: resolveGamepadButton(button) }
 }
 
 /** `MouseEvent.button` indices. */
@@ -60,18 +60,18 @@ export const MouseButton = {
   Right: 2,
   Back: 3,
   Forward: 4,
-} as const;
+} as const
 
-export type MouseButtonName = keyof typeof MouseButton;
+export type MouseButtonName = keyof typeof MouseButton
 
-export type MouseButtonRef = number | MouseButtonName;
+export type MouseButtonRef = number | MouseButtonName
 
 /** Resolve a mouse button name or raw index to the `MouseEvent.button` index. */
 export function resolveMouseButton(button: MouseButtonRef): number {
-  return typeof button === "number" ? button : MouseButton[button];
+  return typeof button === 'number' ? button : MouseButton[button]
 }
 
 /** Build a mouse shortcut descriptor: `mouseButton("Back")` or `mouseButton(3)`. */
 export function mouseButton(button: MouseButtonRef): MouseShortcut {
-  return { mouseButton: resolveMouseButton(button) };
+  return { mouseButton: resolveMouseButton(button) }
 }

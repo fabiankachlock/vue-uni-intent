@@ -1,19 +1,19 @@
-export { createUniIntent } from "./plugin";
-export { useTrigger } from "./useTrigger";
-export { useTriggerLayer, ROOT_LAYER_ID } from "./layers";
+export { createUniIntent } from './plugin'
+export { useTrigger } from './useTrigger'
+export { useTriggerLayer, ROOT_LAYER_ID } from './layers'
 
-export { keyboardAdapter, type KeyboardAdapterOptions } from "./adapters/keyboard";
-export { mouseAdapter } from "./adapters/mouse";
+export { keyboardAdapter, type KeyboardAdapterOptions } from './adapters/keyboard'
+export { mouseAdapter } from './adapters/mouse'
 export {
   gamepadAdapter,
   pollGamepads,
   createGamepadPollState,
   type GamepadAdapterOptions,
   type GamepadPollState,
-} from "./adapters/gamepad";
+} from './adapters/gamepad'
 
-export { findNext } from "./navigation";
-export { matchShortcut } from "./shortcuts";
+export { findNext } from './navigation'
+export { matchShortcut } from './shortcuts'
 export {
   GamepadAxis,
   GamepadButton,
@@ -27,7 +27,7 @@ export {
   type GamepadButtonRef,
   type MouseButtonName,
   type MouseButtonRef,
-} from "./helpers";
+} from './helpers'
 
 export type {
   UniIntentOptions,
@@ -41,6 +41,6 @@ export type {
   UseTriggerLayerReturn,
   UseTriggerOptions,
   UseTriggerReturn,
-} from "./types";
-export type { AdapterContext, InputAdapter, ShortcutInput } from "./adapters/types";
-export type { NavCandidate, NavOptions, NavRect } from "./navigation";
+} from './types'
+export type { AdapterContext, InputAdapter, ShortcutInput } from './adapters/types'
+export type { NavCandidate, NavOptions, NavRect } from './navigation'

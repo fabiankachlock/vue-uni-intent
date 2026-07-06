@@ -1,16 +1,12 @@
-import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
-import {
-  createGamepadPollState,
-  pollGamepads,
-  type GamepadPollState,
-} from "../adapters/gamepad";
-import type { AdapterContext } from "../adapters/types";
-import { GamepadButton } from "../helpers";
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
+import { createGamepadPollState, pollGamepads, type GamepadPollState } from '../adapters/gamepad'
+import type { AdapterContext } from '../adapters/types'
+import { GamepadButton } from '../helpers'
 
 type FakePad = {
-  buttons?: number[];
-  axes?: [number, number];
-};
+  buttons?: number[]
+  axes?: [number, number]
+}
 
 /** Build a Gamepad-shaped object with the given pressed button indices. */
 function pad({ buttons = [], axes = [0, 0] }: FakePad = {}): Gamepad {
@@ -18,8 +14,8 @@ function pad({ buttons = [], axes = [0, 0] }: FakePad = {}): Gamepad {
     pressed: buttons.includes(i),
     touched: false,
     value: buttons.includes(i) ? 1 : 0,
-  }));
-  return { buttons: buttonList, axes, mapping: "standard" } as unknown as Gamepad;
+  }))
+  return { buttons: buttonList, axes, mapping: 'standard' } as unknown as Gamepad
 }
 
 const OPTIONS = {
@@ -27,19 +23,19 @@ const OPTIONS = {
   initialRepeatDelay: 400,
   repeatInterval: 150,
   activateButton: GamepadButton.A,
-};
+}
 
 let ctx: {
-  move: Mock;
-  activate: Mock;
-  focus: Mock;
-  dispatchShortcut: Mock;
-  isRegisteredElement: Mock;
-};
-let state: GamepadPollState;
+  move: Mock
+  activate: Mock
+  focus: Mock
+  dispatchShortcut: Mock
+  isRegisteredElement: Mock
+}
+let state: GamepadPollState
 
 const poll = (pads: (Gamepad | null)[], now: number) =>
-  pollGamepads(pads, state, now, ctx as unknown as AdapterContext, OPTIONS);
+  pollGamepads(pads, state, now, ctx as unknown as AdapterContext, OPTIONS)
 
 beforeEach(() => {
   ctx = {
@@ -48,84 +44,84 @@ beforeEach(() => {
     focus: vi.fn<() => void>(),
     dispatchShortcut: vi.fn<() => boolean>(() => false),
     isRegisteredElement: vi.fn<() => string | null>(() => null),
-  };
-  state = createGamepadPollState();
-});
+  }
+  state = createGamepadPollState()
+})
 
-describe("pollGamepads", () => {
-  it("activates on the A button, edge-triggered", () => {
-    poll([pad({ buttons: [GamepadButton.A] })], 0);
-    poll([pad({ buttons: [GamepadButton.A] })], 16);
-    poll([pad()], 32);
-    poll([pad({ buttons: [GamepadButton.A] })], 48);
-    expect(ctx.activate).toHaveBeenCalledTimes(2);
-  });
+describe('pollGamepads', () => {
+  it('activates on the A button, edge-triggered', () => {
+    poll([pad({ buttons: [GamepadButton.A] })], 0)
+    poll([pad({ buttons: [GamepadButton.A] })], 16)
+    poll([pad()], 32)
+    poll([pad({ buttons: [GamepadButton.A] })], 48)
+    expect(ctx.activate).toHaveBeenCalledTimes(2)
+  })
 
-  it("dispatches other buttons as gamepad shortcuts", () => {
-    poll([pad({ buttons: [GamepadButton.B] })], 0);
+  it('dispatches other buttons as gamepad shortcuts', () => {
+    poll([pad({ buttons: [GamepadButton.B] })], 0)
     expect(ctx.dispatchShortcut).toHaveBeenCalledWith({
-      kind: "gamepad-button",
+      kind: 'gamepad-button',
       button: GamepadButton.B,
-    });
-    expect(ctx.activate).not.toHaveBeenCalled();
-  });
+    })
+    expect(ctx.activate).not.toHaveBeenCalled()
+  })
 
-  it("moves once per D-pad tap", () => {
-    poll([pad({ buttons: [GamepadButton.DPadRight] })], 0);
-    poll([pad({ buttons: [GamepadButton.DPadRight] })], 16);
-    poll([pad()], 32);
-    expect(ctx.move).toHaveBeenCalledTimes(1);
-    expect(ctx.move).toHaveBeenCalledWith("right");
-  });
+  it('moves once per D-pad tap', () => {
+    poll([pad({ buttons: [GamepadButton.DPadRight] })], 0)
+    poll([pad({ buttons: [GamepadButton.DPadRight] })], 16)
+    poll([pad()], 32)
+    expect(ctx.move).toHaveBeenCalledTimes(1)
+    expect(ctx.move).toHaveBeenCalledWith('right')
+  })
 
-  it("repeats a held direction after the initial delay, then at the interval", () => {
-    const held = () => pad({ buttons: [GamepadButton.DPadDown] });
-    poll([held()], 0); // immediate move
-    poll([held()], 200); // still in initial delay
-    poll([held()], 399);
-    expect(ctx.move).toHaveBeenCalledTimes(1);
+  it('repeats a held direction after the initial delay, then at the interval', () => {
+    const held = () => pad({ buttons: [GamepadButton.DPadDown] })
+    poll([held()], 0) // immediate move
+    poll([held()], 200) // still in initial delay
+    poll([held()], 399)
+    expect(ctx.move).toHaveBeenCalledTimes(1)
 
-    poll([held()], 400); // delay elapsed → repeat
-    expect(ctx.move).toHaveBeenCalledTimes(2);
-    poll([held()], 500); // within repeat interval
-    expect(ctx.move).toHaveBeenCalledTimes(2);
-    poll([held()], 550); // interval elapsed
-    expect(ctx.move).toHaveBeenCalledTimes(3);
-  });
+    poll([held()], 400) // delay elapsed → repeat
+    expect(ctx.move).toHaveBeenCalledTimes(2)
+    poll([held()], 500) // within repeat interval
+    expect(ctx.move).toHaveBeenCalledTimes(2)
+    poll([held()], 550) // interval elapsed
+    expect(ctx.move).toHaveBeenCalledTimes(3)
+  })
 
-  it("moves immediately when the held direction changes", () => {
-    poll([pad({ buttons: [GamepadButton.DPadDown] })], 0);
-    poll([pad({ buttons: [GamepadButton.DPadRight] })], 16);
-    expect(ctx.move).toHaveBeenNthCalledWith(1, "down");
-    expect(ctx.move).toHaveBeenNthCalledWith(2, "right");
-  });
+  it('moves immediately when the held direction changes', () => {
+    poll([pad({ buttons: [GamepadButton.DPadDown] })], 0)
+    poll([pad({ buttons: [GamepadButton.DPadRight] })], 16)
+    expect(ctx.move).toHaveBeenNthCalledWith(1, 'down')
+    expect(ctx.move).toHaveBeenNthCalledWith(2, 'right')
+  })
 
-  it("resolves stick input past the deadzone by dominant axis", () => {
-    poll([pad({ axes: [0.3, 0.2] })], 0); // inside deadzone
-    expect(ctx.move).not.toHaveBeenCalled();
+  it('resolves stick input past the deadzone by dominant axis', () => {
+    poll([pad({ axes: [0.3, 0.2] })], 0) // inside deadzone
+    expect(ctx.move).not.toHaveBeenCalled()
 
-    poll([pad({ axes: [-0.9, 0.4] })], 16);
-    expect(ctx.move).toHaveBeenCalledWith("left");
+    poll([pad({ axes: [-0.9, 0.4] })], 16)
+    expect(ctx.move).toHaveBeenCalledWith('left')
 
-    poll([pad()], 32); // release
-    poll([pad({ axes: [0.2, -0.8] })], 48);
-    expect(ctx.move).toHaveBeenCalledWith("up");
-  });
+    poll([pad()], 32) // release
+    poll([pad({ axes: [0.2, -0.8] })], 48)
+    expect(ctx.move).toHaveBeenCalledWith('up')
+  })
 
-  it("prefers the D-pad over the stick", () => {
-    poll([pad({ buttons: [GamepadButton.DPadUp], axes: [1, 0] })], 0);
-    expect(ctx.move).toHaveBeenCalledWith("up");
-  });
+  it('prefers the D-pad over the stick', () => {
+    poll([pad({ buttons: [GamepadButton.DPadUp], axes: [1, 0] })], 0)
+    expect(ctx.move).toHaveBeenCalledWith('up')
+  })
 
-  it("treats a released and re-pressed direction as a fresh tap", () => {
-    poll([pad({ buttons: [GamepadButton.DPadRight] })], 0);
-    poll([pad()], 100);
-    poll([pad({ buttons: [GamepadButton.DPadRight] })], 200);
-    expect(ctx.move).toHaveBeenCalledTimes(2);
-  });
+  it('treats a released and re-pressed direction as a fresh tap', () => {
+    poll([pad({ buttons: [GamepadButton.DPadRight] })], 0)
+    poll([pad()], 100)
+    poll([pad({ buttons: [GamepadButton.DPadRight] })], 200)
+    expect(ctx.move).toHaveBeenCalledTimes(2)
+  })
 
-  it("handles null pad slots and multiple pads", () => {
-    poll([null, pad({ buttons: [GamepadButton.A] }), null], 0);
-    expect(ctx.activate).toHaveBeenCalledOnce();
-  });
-});
+  it('handles null pad slots and multiple pads', () => {
+    poll([null, pad({ buttons: [GamepadButton.A] }), null], 0)
+    expect(ctx.activate).toHaveBeenCalledOnce()
+  })
+})
