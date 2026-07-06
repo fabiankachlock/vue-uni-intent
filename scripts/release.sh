@@ -29,7 +29,7 @@ pnpm run lint
 pnpm run test:unit
 pnpm run build
 
-npm version "$bump" -m "chore(release): v%s"
+npm version "$bump" -m "release: v%s"
 
 version="$(node -p "require('./package.json').version")"
 echo "Pushing v$version..."
