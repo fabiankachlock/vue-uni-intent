@@ -1,6 +1,6 @@
 {
   "name": "vue-uni-intent",
-  "version": "1.0.0-alpha.0",
+  "version": "1.0.0-alpha.1",
   "type": "module",
   "packageManager": "pnpm@11.9.0",
   "repository": {
