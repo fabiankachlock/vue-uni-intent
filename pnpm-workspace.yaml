@@ -1,0 +1,3 @@
+# esbuild's postinstall only validates the platform binary; safe to allow.
+allowBuilds:
+  esbuild: true

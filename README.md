@@ -132,8 +132,15 @@ export function midiAdapter(): InputAdapter {
 
 ```sh
 pnpm install
-pnpm dev        # playground app (playground/)
+pnpm storybook  # interactive examples (playground/stories/)
+pnpm dev        # minimal dev app + e2e smoke page (playground/)
 pnpm test:unit  # vitest
 pnpm build      # type-check + library build to dist/
 pnpm lint
 ```
+
+The Storybook stories double as living documentation: grid navigation (wrap
+modes, disabled triggers, custom WASD bindings), focus strategies, global
+shortcuts, modal + nested layers, programmatic control, and a full game-menu
+example. Stories override plugin options per story via
+`parameters.uniIntent` (see `.storybook/preview.ts`).
