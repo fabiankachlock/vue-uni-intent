@@ -38,24 +38,26 @@ useTriggerLayer({ id: "confirm-modal" });
 }
 
 .modal {
-  background: #14141e;
-  border: 1px solid #445;
-  border-radius: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
   padding: 2rem;
   max-width: 26rem;
-  color: #eee;
+  box-shadow: 0 16px 48px rgb(0 0 0 / 0.5);
+}
+
+.modal h2 {
+  margin-top: 0;
+}
+
+.modal p {
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 .actions {
   display: flex;
   gap: 1rem;
   margin-top: 1.5rem;
-}
-
-kbd {
-  background: #2a2a3a;
-  border-radius: 4px;
-  padding: 0.1rem 0.4rem;
-  font-size: 0.85em;
 }
 </style>

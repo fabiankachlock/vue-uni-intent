@@ -28,7 +28,7 @@ const cells = Array.from({ length: 5 }, (_, i) => ({
         v-for="(cell, i) in cells"
         :id="cell.id"
         :key="cell.id"
-        :label="i + 1 === autofocusCell ? `${cell.label} ★` : cell.label"
+        :label="i + 1 === autofocusCell ? `${cell.label} (autofocus)` : cell.label"
         :autofocus="i + 1 === autofocusCell"
         @trigger="say(`${cell.label} triggered`)"
       />

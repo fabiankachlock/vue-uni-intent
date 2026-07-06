@@ -11,7 +11,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{ trigger: [] }>();
 
-const { ref: el, focused } = useTrigger({
+const { ref: el } = useTrigger({
   id: props.id,
   onTrigger: () => emit("trigger"),
   shortcuts: props.shortcuts,
@@ -23,43 +23,33 @@ const { ref: el, focused } = useTrigger({
 <template>
   <button ref="el" class="demo-button" :class="{ disabled }" type="button">
     {{ label }}
-    <span v-if="focused" class="hint">●</span>
   </button>
 </template>
 
 <style scoped>
 .demo-button {
-  position: relative;
-  padding: 1rem 1.5rem;
-  font-size: 1rem;
-  border: 2px solid #445;
-  border-radius: 8px;
-  background: #1c1c28;
-  color: #eee;
+  padding: 0.7rem 1.25rem;
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  letter-spacing: 0.03em;
+  border: 1px solid var(--line-strong);
+  border-radius: 2px;
+  background: var(--panel);
+  color: var(--ink);
   cursor: pointer;
   outline: none;
-  transition:
-    transform 80ms ease,
-    border-color 80ms ease,
-    background 80ms ease;
 }
 
 .demo-button[data-uni-focused] {
-  border-color: #7cf;
-  background: #26314a;
-  transform: scale(1.06);
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
 }
 
 .demo-button.disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.hint {
-  position: absolute;
-  top: 4px;
-  right: 8px;
-  font-size: 0.6rem;
-  color: #7cf;
+  color: var(--faint);
+  border-color: var(--line);
+  background: transparent;
+  cursor: default;
 }
 </style>

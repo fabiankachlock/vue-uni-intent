@@ -30,14 +30,6 @@ const backShortcuts = [key("Escape"), button("B"), mouseButton("Back")];
     <h1>PAUSED</h1>
     <GamepadHint />
 
-    <div class="corner top-right">
-      <DemoButton id="account" label="👤 Account" @trigger="say('Account opened')" />
-    </div>
-    <div class="corner bottom-right">
-      <DemoButton id="leaderboard" label="🏆 Leaderboard" @trigger="say('Leaderboard opened')" />
-      <DemoButton id="stats" label="📊 Stats" @trigger="say('Stats opened')" />
-    </div>
-
     <nav class="menu">
       <DemoButton
         id="continue"
@@ -50,12 +42,22 @@ const backShortcuts = [key("Escape"), button("B"), mouseButton("Back")];
         label="New Game"
         @trigger="
           hasSave = true;
-          say('Started a new game — Continue is now enabled');
+          say('New game started, Continue is now enabled');
         "
       />
       <DemoButton id="settings" label="Settings" @trigger="screen = 'settings'" />
       <DemoButton id="quit" label="Quit" @trigger="screen = 'quit'" />
     </nav>
+
+    <!-- Registered after the menu so initial focus stays there; their fixed
+         position doesn't matter to navigation, only their DOM rects do. -->
+    <div class="corner top-right">
+      <DemoButton id="account" label="Account" @trigger="say('Account opened')" />
+    </div>
+    <div class="corner bottom-right">
+      <DemoButton id="leaderboard" label="Leaderboard" @trigger="say('Leaderboard opened')" />
+      <DemoButton id="stats" label="Stats" @trigger="say('Stats opened')" />
+    </div>
 
     <p class="footer">
       <kbd>↑</kbd><kbd>↓</kbd> / D-pad / stick — move · <kbd>Enter</kbd> / <kbd>A</kbd> — select ·
@@ -89,7 +91,7 @@ const backShortcuts = [key("Escape"), button("B"), mouseButton("Back")];
           label="Quit"
           @trigger="
             screen = 'menu';
-            say('It was just a demo — staying right here');
+            say('Quit confirmed (the demo keeps running)');
           "
         />
         <DemoButton
@@ -115,9 +117,12 @@ const backShortcuts = [key("Escape"), button("B"), mouseButton("Back")];
 }
 
 h1 {
-  letter-spacing: 0.5em;
-  text-indent: 0.5em;
-  color: #7cf;
+  font-family: var(--font-ui);
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: 0.6em;
+  text-indent: 0.6em;
+  color: var(--ink);
 }
 
 .menu {
@@ -133,8 +138,8 @@ h1 {
 }
 
 .footer {
-  color: #778;
-  font-size: 0.85rem;
+  color: var(--faint);
+  font-size: 0.8rem;
 }
 
 /* Detached screen regions — spatial navigation finds them from their DOM

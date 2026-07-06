@@ -18,17 +18,38 @@ onBeforeUnmount(() => {
 
 <template>
   <p class="gamepad-hint" :class="{ connected }">
-    {{ connected ? "🎮 Gamepad connected" : "🎮 No gamepad — press any button to wake one up" }}
+    <span class="dot" aria-hidden="true" />
+    {{
+      connected
+        ? "Gamepad connected"
+        : "No gamepad detected. Press any button on the controller to connect."
+    }}
   </p>
 </template>
 
 <style scoped>
 .gamepad-hint {
-  color: #778;
-  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  color: var(--muted);
 }
 
-.gamepad-hint.connected {
-  color: #7f7;
+.dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--faint);
+}
+
+.connected {
+  color: var(--ok);
+}
+
+.connected .dot {
+  background: var(--ok);
 }
 </style>

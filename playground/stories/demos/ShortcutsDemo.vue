@@ -30,7 +30,7 @@ const actions: { id: string; label: string; hint: string; shortcuts: ShortcutDes
   {
     id: "inspect",
     label: "Inspect",
-    hint: "right mouse button",
+    hint: "Right mouse button",
     shortcuts: [mouseButton("Right")],
   },
   {
@@ -79,7 +79,9 @@ const actions: { id: string; label: string; hint: string; shortcuts: ShortcutDes
 }
 
 .hint {
-  color: #778;
-  font-size: 0.8rem;
+  color: var(--faint);
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
 }
 </style>

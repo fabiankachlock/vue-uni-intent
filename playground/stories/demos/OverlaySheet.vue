@@ -26,10 +26,11 @@ useTriggerLayer();
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  background: #14141e;
-  border: 1px solid #445;
-  border-radius: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
   padding: 2rem 3rem;
   min-width: 18rem;
+  box-shadow: 0 16px 48px rgb(0 0 0 / 0.5);
 }
 </style>

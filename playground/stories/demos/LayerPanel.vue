@@ -35,15 +35,24 @@ useTriggerLayer({ id: `panel-${props.depth}` });
   position: fixed;
   top: 20%;
   left: 30%;
-  background: #14141e;
-  border: 1px solid #445;
-  border-radius: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
   padding: 1.5rem 2rem;
-  box-shadow: 0 8px 32px rgb(0 0 0 / 0.5);
+  box-shadow: 0 16px 48px rgb(0 0 0 / 0.5);
+}
+
+.panel h3 {
+  margin-top: 0;
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
 }
 
 .panel p {
-  color: #aab;
+  color: var(--muted);
   font-size: 0.9rem;
 }
 

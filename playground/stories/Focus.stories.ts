@@ -16,7 +16,7 @@ type Story = StoryObj<typeof meta>;
 export const Autofocus: Story = {
   args: {
     autofocusCell: 3,
-    help: "The ★ button declares autofocus, so it receives initial focus instead of the first registered trigger.",
+    help: "The button marked (autofocus) declares autofocus, so it receives initial focus instead of the first registered trigger.",
   },
 };
 

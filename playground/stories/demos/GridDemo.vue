@@ -34,7 +34,7 @@ const cells = computed(() =>
         v-for="cell in cells"
         :id="cell.id"
         :key="cell.id"
-        :label="cell.disabled ? `${cell.label} ✕` : cell.label"
+        :label="cell.label"
         :disabled="cell.disabled"
         @trigger="say(`${cell.label} triggered`)"
       />

@@ -49,28 +49,37 @@ const {
 }
 
 .target {
-  padding: 1rem 1.5rem;
-  font-size: 1rem;
-  border: 2px solid #445;
-  border-radius: 8px;
-  background: #1c1c28;
-  color: #eee;
+  padding: 0.7rem 1.25rem;
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  letter-spacing: 0.03em;
+  border: 1px dashed var(--line-strong);
+  border-radius: 2px;
+  background: var(--panel);
+  color: var(--ink);
   cursor: pointer;
   outline: none;
 }
 
 .target[data-uni-focused] {
-  border-color: #fc7;
-  background: #4a3a26;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
 }
 
 .plain {
-  padding: 0.5rem 1rem;
-  font-family: monospace;
-  border: 1px solid #667;
-  border-radius: 6px;
-  background: #223;
-  color: #cce;
+  padding: 0.45rem 0.9rem;
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--muted);
   cursor: pointer;
+}
+
+.plain:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
 }
 </style>

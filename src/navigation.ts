@@ -78,7 +78,9 @@ function best(from: Projected, candidates: Projected[], primaryDistOf: (c: Proje
  * Algorithm: filter to the half-plane in the movement direction, prefer
  * candidates inside a 45° cone (or overlapping on the cross axis), score by
  * `primaryDist + crossDist * weight` and take the minimum. With `wrap`, an
- * empty half-plane instead picks the candidate nearest the opposite edge.
+ * empty half-plane instead picks the candidate nearest the opposite edge —
+ * but only among candidates that lie behind the origin on the movement axis;
+ * if nothing exists along that axis at all, the move is a no-op.
  */
 export function findNext(
   from: NavCandidate,

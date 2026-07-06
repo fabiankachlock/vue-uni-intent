@@ -6,6 +6,7 @@ import {
   mouseAdapter,
 } from "vue-uni-intent";
 import App from "./App.vue";
+import "./theme.css";
 
 createApp(App)
   .use(

@@ -19,7 +19,9 @@ defineProps<{ help?: string }>();
 }
 
 .help {
-  color: #aab;
+  max-width: 40rem;
   margin-top: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 </style>

@@ -39,7 +39,7 @@ export const DisabledTriggers: Story = {
     columns: 4,
     rows: 3,
     disabledCells: [2, 6, 7, 11],
-    help: "The ✕ cells are disabled: navigation skips over them, and neither click nor Enter fires them.",
+    help: "The dimmed cells are disabled: navigation skips over them, and neither click nor Enter fires them.",
   },
 };
 
