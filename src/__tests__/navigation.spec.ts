@@ -55,6 +55,21 @@ describe("findNext", () => {
     it("does not wrap when a candidate exists ahead", () => {
       expect(findNext(grid.b!, others("b"), "right", { wrap: true })).toBe("c");
     });
+
+    it("does nothing on a single row when moving vertically", () => {
+      const row = [grid.a!, grid.b!, grid.c!];
+      const rowOthers = (id: string) => row.filter((c) => c.id !== id);
+      expect(findNext(grid.a!, rowOthers("a"), "up", { wrap: true })).toBeNull();
+      expect(findNext(grid.a!, rowOthers("a"), "down", { wrap: true })).toBeNull();
+      expect(findNext(grid.b!, rowOthers("b"), "up", { wrap: true })).toBeNull();
+    });
+
+    it("does nothing on a single column when moving horizontally", () => {
+      const column = [grid.a!, grid.d!, grid.g!];
+      const columnOthers = (id: string) => column.filter((c) => c.id !== id);
+      expect(findNext(grid.a!, columnOthers("a"), "left", { wrap: true })).toBeNull();
+      expect(findNext(grid.d!, columnOthers("d"), "right", { wrap: true })).toBeNull();
+    });
   });
 
   describe("cone preference", () => {

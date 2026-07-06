@@ -101,11 +101,16 @@ export function findNext(
     return best(origin, pool, (c) => c.primary - origin.primary)?.id ?? null;
   }
 
-  if (options.wrap && projected.length > 0) {
-    // Wrap: treat distance from the far opposite edge as the primary distance,
-    // so the "first" trigger on the other side (best cross alignment) wins.
-    const minPrimary = Math.min(...projected.map((c) => c.primary));
-    return best(origin, projected, (c) => c.primary - minPrimary)?.id ?? null;
+  if (options.wrap) {
+    // Wrap targets must lie behind the origin — otherwise there is nothing
+    // along this axis to wrap to and the move is a no-op.
+    const behind = projected.filter((c) => c.primary < origin.primary - EPSILON);
+    if (behind.length > 0) {
+      // Treat distance from the far opposite edge as the primary distance,
+      // so the "first" trigger on the other side (best cross alignment) wins.
+      const minPrimary = Math.min(...behind.map((c) => c.primary));
+      return best(origin, behind, (c) => c.primary - minPrimary)?.id ?? null;
+    }
   }
 
   return null;
