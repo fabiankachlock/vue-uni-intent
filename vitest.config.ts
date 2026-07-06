@@ -1,14 +1,19 @@
-import { fileURLToPath } from 'node:url'
-import { mergeConfig, defineConfig, configDefaults } from 'vitest/config'
-import viteConfig from './vite.config'
+import { fileURLToPath, URL } from "node:url";
+import { configDefaults, defineConfig } from "vitest/config";
+import vue from "@vitejs/plugin-vue";
 
-export default mergeConfig(
-  viteConfig,
-  defineConfig({
-    test: {
-      environment: 'jsdom',
-      exclude: [...configDefaults.exclude, 'e2e/**'],
-      root: fileURLToPath(new URL('./', import.meta.url)),
+// Standalone config (not merged with vite.config.ts, which is conditional
+// between playground serve and library build — neither fits tests).
+export default defineConfig({
+  plugins: [vue()],
+  resolve: {
+    alias: {
+      "vue-uni-intent": fileURLToPath(new URL("./src/index.ts", import.meta.url)),
     },
-  }),
-)
+  },
+  test: {
+    environment: "jsdom",
+    exclude: [...configDefaults.exclude, "e2e/**"],
+    root: fileURLToPath(new URL("./", import.meta.url)),
+  },
+});
