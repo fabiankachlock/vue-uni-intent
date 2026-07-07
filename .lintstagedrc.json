@@ -1,0 +1,8 @@
+{
+  "**/*.{ts,vue}": [
+    "pnpm run lint",
+    "pnpm run format",
+    "pnpm run test",
+    "pnpm run build"
+  ]
+}
