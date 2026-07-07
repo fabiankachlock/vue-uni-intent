@@ -76,6 +76,27 @@ The focused trigger can be styled via the attribute hook:
 If you leave the `ref` unbound, the trigger acts as a pure shortcut handler: it
 participates in the trigger system but not in spatial navigation.
 
+## What fired a trigger
+
+`onTrigger` receives a `TriggerCause`: `source` (the firing adapter's `name`, or
+`"manual"`), `via` (`"activate"`, `"shortcut"`, or `"manual"`), and whatever the
+adapter attached — a native `event` for keyboard/mouse, the `button` index for
+gamepad. The core stays input-agnostic, so the shape is open; type guards narrow
+it:
+
+```ts
+import { isKeyboardCause, isGamepadCause } from "vue-uni-intent";
+
+onTrigger: (cause) => {
+  if (isKeyboardCause(cause)) cause.event.preventDefault(); // KeyboardEvent
+  else if (isGamepadCause(cause)) console.log(cause.button); // standard-mapping index
+  save();
+};
+```
+
+`isMouseCause` and `isManualCause` are exported too. Custom adapters attach their
+own detail; narrow it with your own guard.
+
 ## Focus layers
 
 ```vue
@@ -106,7 +127,9 @@ controllers the physical A/B and X/Y labels are swapped relative to it.
 ## Custom adapters
 
 An adapter is any object implementing `InputAdapter`. It receives an
-`AdapterContext` in `setup`, which is its only connection to the core:
+`AdapterContext` in `setup`, which is its only connection to the core. When it
+fires a trigger it passes a [cause](#what-fired-a-trigger) — a `source` (usually
+its `name`), a `via`, and any native `event` or detail:
 
 ```ts
 import type { InputAdapter } from "vue-uni-intent";
@@ -118,9 +141,9 @@ export function midiAdapter(): InputAdapter {
     setup(ctx) {
       // wire your input source to:
       // ctx.move("up" | "down" | "left" | "right")
-      // ctx.activate()
+      // ctx.activate({ source: "midi", via: "activate", note })
       // ctx.focus(id)
-      // ctx.dispatchShortcut(input)
+      // ctx.dispatchShortcut(input, { source: "midi", via: "shortcut", note })
     },
     teardown() {
       stop();

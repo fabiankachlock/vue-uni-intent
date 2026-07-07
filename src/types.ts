@@ -36,10 +36,41 @@ export type MouseShortcut = Modifiers & {
 
 export type ShortcutDescriptor = KeyShortcut | GamepadShortcut | MouseShortcut
 
+/**
+ * Describes what caused a trigger to fire — the argument passed to `onTrigger`.
+ * The core stays input-agnostic, so adapters populate this: `source` is the
+ * adapter's `name` (or `'manual'` for a programmatic `.trigger()` call), and
+ * each adapter attaches whatever native event or detail it has. Built-in
+ * adapters export a precise shape (`KeyboardTriggerCause`, `MouseTriggerCause`,
+ * `GamepadTriggerCause`) you can narrow to by checking `source`.
+ */
+export type TriggerCause = {
+  /** The adapter that fired the trigger (its `name`), or `'manual'`. */
+  source: string
+  /** How it fired: direct `'activate'`, a `'shortcut'` match, or programmatic `'manual'`. */
+  via: 'activate' | 'shortcut' | 'manual'
+  /** The native DOM event behind the input, when the source has one (keyboard, mouse). */
+  event?: Event
+  /** Adapter-specific detail — e.g. the gamepad `button` index. */
+  [key: string]: unknown
+}
+
+/** `TriggerCause` shape produced by a programmatic `.trigger()` call. */
+export type ManualTriggerCause = {
+  source: 'manual'
+  via: 'manual'
+}
+
+/** Narrow a `TriggerCause` to a programmatic (`.trigger()`) cause. */
+export function isManualCause(cause: TriggerCause): cause is ManualTriggerCause {
+  return cause.source === 'manual'
+}
+
 export type UseTriggerOptions = {
   /** Unique within its layer. */
   id: TriggerId
-  onTrigger: () => void
+  /** Called when the trigger fires; receives what caused it (adapter, native event, …). */
+  onTrigger: (cause: TriggerCause) => void
   /** Extra inputs that fire this trigger regardless of focus, e.g. `[key("Escape"), button("B")]`. */
   shortcuts?: ShortcutDescriptor[]
   /** Disabled triggers are skipped by navigation and shortcuts. */

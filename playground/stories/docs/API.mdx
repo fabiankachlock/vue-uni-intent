@@ -25,7 +25,7 @@ Registers a controllable trigger.
 | Option      | Type                          | Description                                                      |
 | ----------- | ----------------------------- | --------------------------------------------------------------- |
 | `id`        | `string`                      | Unique within its layer.                                        |
-| `onTrigger` | `() => void`                  | Called on activation or a matching shortcut.                    |
+| `onTrigger` | `(cause: TriggerCause) => void` | Called on activation or a matching shortcut; receives what fired it (see [Trigger cause](#trigger-cause)). |
 | `shortcuts` | `ShortcutDescriptor[]`        | Inputs that fire this trigger regardless of focus.              |
 | `disabled`  | `MaybeRefOrGetter<boolean>`   | Disabled triggers are skipped by navigation and shortcuts.      |
 | `autofocus` | `boolean`                     | Receive the layer's initial focus.                              |
@@ -37,7 +37,29 @@ Registers a controllable trigger.
 | `ref`     | `Ref<HTMLElement \| null>`  | Bind to the element. Leave unbound for a pure shortcut. |
 | `focused` | `ComputedRef<boolean>`      | Whether this trigger is currently focused.             |
 | `focus`   | `() => void`                | Programmatically focus this trigger.                   |
-| `trigger` | `() => void`                | Programmatically activate this trigger.                |
+| `trigger` | `() => void`                | Programmatically activate this trigger (fires `onTrigger` with a `"manual"` cause). |
+
+## Trigger cause
+
+`onTrigger` receives a `TriggerCause` describing what fired it. The core is
+input-agnostic, so the shape is open — every cause carries a `source` and a
+`via`, and each adapter attaches its own detail:
+
+| Field    | Type                                     | Description                                                              |
+| -------- | ---------------------------------------- | ------------------------------------------------------------------------ |
+| `source` | `string`                                 | The firing adapter's `name`, or `"manual"` for a `.trigger()` call.      |
+| `via`    | `"activate" \| "shortcut" \| "manual"`   | Direct activation, a shortcut match, or a programmatic call.             |
+| `event`  | `Event \| undefined`                     | The native DOM event behind the input, when the source has one.          |
+| …        | `unknown`                                | Adapter-specific detail (e.g. the gamepad `button` index).               |
+
+Built-in adapters export a precise cause type and a guard that narrows to it:
+
+| Guard             | Narrows to            | Extra fields                       |
+| ----------------- | --------------------- | ---------------------------------- |
+| `isKeyboardCause` | `KeyboardTriggerCause`| `event: KeyboardEvent`             |
+| `isMouseCause`    | `MouseTriggerCause`   | `event: MouseEvent`                |
+| `isGamepadCause`  | `GamepadTriggerCause` | `button: number` (no native event) |
+| `isManualCause`   | `ManualTriggerCause`  | —                                  |
 
 ## `useTriggerLayer(options?)`
 
@@ -59,6 +81,9 @@ Scopes descendant triggers to a new focus layer for the component's lifetime.
 - **`gamepadAdapter(options?)`** — `deadzone`, `initialRepeatDelay`,
   `repeatInterval`. Also exports `pollGamepads`, `createGamepadPollState` for
   custom polling loops.
+
+Adapters fire triggers via `ctx.activate(cause)` and
+`ctx.dispatchShortcut(input, cause)`, passing a [`TriggerCause`](#trigger-cause).
 
 ## Shortcut helpers
 

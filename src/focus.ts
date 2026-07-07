@@ -3,7 +3,7 @@ import type { LayerHandle, LayerManager } from './layers'
 import { ROOT_LAYER_ID } from './layers'
 import { findNext, type NavCandidate } from './navigation'
 import type { TriggerRecord, TriggerRegistry } from './registry'
-import type { Direction, TriggerId } from './types'
+import type { Direction, TriggerCause, TriggerId } from './types'
 
 export type FocusManagerOptions = {
   wrap: boolean
@@ -39,11 +39,11 @@ export class FocusManager {
     if (record) this.focus(record)
   }
 
-  /** Fire the focused trigger. */
-  activate(): void {
+  /** Fire the focused trigger, forwarding what caused it. */
+  activate(cause: TriggerCause): void {
     const record = this.focusedRecord.value
     if (!record || record.isDisabled()) return
-    record.onTrigger()
+    record.onTrigger(cause)
   }
 
   /** Move focus via spatial navigation over the active layer's on-screen triggers. */

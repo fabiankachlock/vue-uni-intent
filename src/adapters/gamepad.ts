@@ -1,6 +1,22 @@
 import { GamepadAxis, GamepadButton, resolveGamepadButton, type GamepadButtonRef } from '../helpers'
-import type { Direction } from '../types'
+import type { Direction, TriggerCause } from '../types'
 import type { AdapterContext, InputAdapter } from './types'
+
+/**
+ * `TriggerCause` shape produced by the gamepad adapter. There is no native
+ * event (input is polled), so the standard-mapping `button` index is carried.
+ */
+export type GamepadTriggerCause = {
+  source: 'gamepad'
+  via: 'activate' | 'shortcut'
+  /** Standard-mapping button index that fired the trigger (see `GamepadButton`). */
+  button: number
+}
+
+/** Narrow a `TriggerCause` to the gamepad adapter's fully-typed shape. */
+export function isGamepadCause(cause: TriggerCause): cause is GamepadTriggerCause {
+  return cause.source === 'gamepad'
+}
 
 export type GamepadAdapterOptions = {
   /** Stick magnitude below which input is ignored. Default `0.5`. */
@@ -80,9 +96,17 @@ export function pollGamepads(
   for (const index of pressed) {
     if (state.buttonsDown.has(index)) continue
     if (index === options.activateButton) {
-      ctx.activate()
+      ctx.activate({
+        source: 'gamepad',
+        via: 'activate',
+        button: index,
+      } satisfies GamepadTriggerCause)
     } else {
-      ctx.dispatchShortcut({ kind: 'gamepad-button', button: index })
+      ctx.dispatchShortcut({ kind: 'gamepad-button', button: index }, {
+        source: 'gamepad',
+        via: 'shortcut',
+        button: index,
+      } satisfies GamepadTriggerCause)
     }
   }
   state.buttonsDown = pressed

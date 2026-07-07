@@ -1,5 +1,18 @@
-import type { Direction } from '../types'
+import type { Direction, TriggerCause } from '../types'
 import type { AdapterContext, InputAdapter } from './types'
+
+/** `TriggerCause` shape produced by the keyboard adapter. */
+export type KeyboardTriggerCause = {
+  source: 'keyboard'
+  via: 'activate' | 'shortcut'
+  /** The `keydown` event that fired the trigger. */
+  event: KeyboardEvent
+}
+
+/** Narrow a `TriggerCause` to the keyboard adapter's fully-typed shape. */
+export function isKeyboardCause(cause: TriggerCause): cause is KeyboardTriggerCause {
+  return cause.source === 'keyboard'
+}
 
 export type KeyboardAdapterOptions = {
   /** `KeyboardEvent.key` values per action. Defaults: arrow keys + Enter/Space. */
@@ -54,14 +67,17 @@ export function keyboardAdapter(options: KeyboardAdapterOptions = {}): InputAdap
     // activation and bare-key shortcuts must not steal the keystroke.
     if (isEditableTarget(event.target) && !hasModifier) return
 
-    const handledShortcut = ctx.dispatchShortcut({
-      kind: 'key',
-      key: event.key,
-      ctrl: event.ctrlKey,
-      shift: event.shiftKey,
-      alt: event.altKey,
-      meta: event.metaKey,
-    })
+    const handledShortcut = ctx.dispatchShortcut(
+      {
+        kind: 'key',
+        key: event.key,
+        ctrl: event.ctrlKey,
+        shift: event.shiftKey,
+        alt: event.altKey,
+        meta: event.metaKey,
+      },
+      { source: 'keyboard', via: 'shortcut', event } satisfies KeyboardTriggerCause,
+    )
     if (handledShortcut) {
       event.preventDefault()
       return
@@ -81,7 +97,7 @@ export function keyboardAdapter(options: KeyboardAdapterOptions = {}): InputAdap
       // preventDefault also stops native buttons from synthesizing a click,
       // which would double-fire through a mouse adapter.
       event.preventDefault()
-      ctx.activate()
+      ctx.activate({ source: 'keyboard', via: 'activate', event } satisfies KeyboardTriggerCause)
     }
   }
 

@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { createGamepadPollState, pollGamepads, type GamepadPollState } from '../adapters/gamepad'
-import type { AdapterContext } from '../adapters/types'
+import type { AdapterContext, ShortcutInput } from '../adapters/types'
 import { GamepadButton } from '../helpers'
+import type { TriggerCause } from '../types'
 
 type FakePad = {
   buttons?: number[]
@@ -40,9 +41,9 @@ const poll = (pads: (Gamepad | null)[], now: number) =>
 beforeEach(() => {
   ctx = {
     move: vi.fn<() => void>(),
-    activate: vi.fn<() => void>(),
+    activate: vi.fn<(cause: TriggerCause) => void>(),
     focus: vi.fn<() => void>(),
-    dispatchShortcut: vi.fn<() => boolean>(() => false),
+    dispatchShortcut: vi.fn<(input: ShortcutInput, cause: TriggerCause) => boolean>(() => false),
     isRegisteredElement: vi.fn<() => string | null>(() => null),
   }
   state = createGamepadPollState()
@@ -55,14 +56,22 @@ describe('pollGamepads', () => {
     poll([pad()], 32)
     poll([pad({ buttons: [GamepadButton.A] })], 48)
     expect(ctx.activate).toHaveBeenCalledTimes(2)
+    expect(ctx.activate).toHaveBeenCalledWith({
+      source: 'gamepad',
+      via: 'activate',
+      button: GamepadButton.A,
+    })
   })
 
   it('dispatches other buttons as gamepad shortcuts', () => {
     poll([pad({ buttons: [GamepadButton.B] })], 0)
-    expect(ctx.dispatchShortcut).toHaveBeenCalledWith({
-      kind: 'gamepad-button',
-      button: GamepadButton.B,
-    })
+    expect(ctx.dispatchShortcut).toHaveBeenCalledWith(
+      {
+        kind: 'gamepad-button',
+        button: GamepadButton.B,
+      },
+      { source: 'gamepad', via: 'shortcut', button: GamepadButton.B },
+    )
     expect(ctx.activate).not.toHaveBeenCalled()
   })
 

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { mouseAdapter } from '../adapters/mouse'
-import type { AdapterContext } from '../adapters/types'
+import type { AdapterContext, ShortcutInput } from '../adapters/types'
+import type { TriggerCause } from '../types'
 
 let ctx: {
   move: Mock
@@ -23,9 +24,9 @@ beforeEach(() => {
 
   ctx = {
     move: vi.fn<() => void>(),
-    activate: vi.fn<() => void>(),
+    activate: vi.fn<(cause: TriggerCause) => void>(),
     focus: vi.fn<() => void>(),
-    dispatchShortcut: vi.fn<() => boolean>(() => false),
+    dispatchShortcut: vi.fn<(input: ShortcutInput, cause: TriggerCause) => boolean>(() => false),
     isRegisteredElement: vi.fn<(el: Element) => string | null>((el) =>
       el.getAttribute('data-uni-trigger'),
     ),
@@ -65,10 +66,10 @@ describe('mouseAdapter', () => {
     expect(ctx.focus).toHaveBeenCalledTimes(2)
   })
 
-  it('activates on left click', () => {
-    fire(innerSpan, 'click')
+  it('activates on left click and reports the click event to onTrigger', () => {
+    const click = fire(innerSpan, 'click')
     expect(ctx.focus).toHaveBeenCalledWith('a')
-    expect(ctx.activate).toHaveBeenCalledOnce()
+    expect(ctx.activate).toHaveBeenCalledWith({ source: 'mouse', via: 'activate', event: click })
   })
 
   it('ignores keyboard-synthesized clicks (detail 0)', () => {
@@ -82,28 +83,34 @@ describe('mouseAdapter', () => {
   })
 
   it('dispatches non-left buttons as mouse shortcuts', () => {
-    fire(document.body, 'mousedown', { button: 3 })
-    expect(ctx.dispatchShortcut).toHaveBeenCalledWith({
-      kind: 'mouse-button',
-      button: 3,
-      ctrl: false,
-      shift: false,
-      alt: false,
-      meta: false,
-    })
+    const down = fire(document.body, 'mousedown', { button: 3 })
+    expect(ctx.dispatchShortcut).toHaveBeenCalledWith(
+      {
+        kind: 'mouse-button',
+        button: 3,
+        ctrl: false,
+        shift: false,
+        alt: false,
+        meta: false,
+      },
+      { source: 'mouse', via: 'shortcut', event: down },
+    )
     expect(ctx.activate).not.toHaveBeenCalled()
   })
 
   it('forwards held modifiers with the mouse shortcut', () => {
     fire(document.body, 'mousedown', { button: 2, ctrlKey: true, shiftKey: true })
-    expect(ctx.dispatchShortcut).toHaveBeenCalledWith({
-      kind: 'mouse-button',
-      button: 2,
-      ctrl: true,
-      shift: true,
-      alt: false,
-      meta: false,
-    })
+    expect(ctx.dispatchShortcut).toHaveBeenCalledWith(
+      {
+        kind: 'mouse-button',
+        button: 2,
+        ctrl: true,
+        shift: true,
+        alt: false,
+        meta: false,
+      },
+      expect.objectContaining({ source: 'mouse', via: 'shortcut' }),
+    )
   })
 
   it('never dispatches left mousedown as a shortcut', () => {

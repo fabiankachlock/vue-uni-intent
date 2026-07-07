@@ -133,8 +133,9 @@ describe('useTrigger', () => {
     await nextTick()
     expect(wrapper.findAll('button')[1]!.attributes('data-uni-focused')).toBe('')
 
-    captured.ctx!.activate()
-    expect(onB).toHaveBeenCalledOnce()
+    const cause = { source: 'test', via: 'activate' } as const
+    captured.ctx!.activate(cause)
+    expect(onB).toHaveBeenCalledWith(cause)
     expect(onA).not.toHaveBeenCalled()
   })
 
@@ -153,16 +154,20 @@ describe('useTrigger', () => {
     )
     await nextTick()
 
-    const handled = captured.ctx!.dispatchShortcut({
-      kind: 'key',
-      key: 'Escape',
-      ctrl: false,
-      shift: false,
-      alt: false,
-      meta: false,
-    })
+    const cause = { source: 'test', via: 'shortcut' } as const
+    const handled = captured.ctx!.dispatchShortcut(
+      {
+        kind: 'key',
+        key: 'Escape',
+        ctrl: false,
+        shift: false,
+        alt: false,
+        meta: false,
+      },
+      cause,
+    )
     expect(handled).toBe(true)
-    expect(onBack).toHaveBeenCalledOnce()
+    expect(onBack).toHaveBeenCalledWith(cause)
   })
 
   it('deregisters on unmount and refocuses a survivor', async () => {
@@ -234,14 +239,17 @@ describe('useTrigger', () => {
     expect(wrapper.find('[data-uni-focused]').attributes('data-uni-trigger')).toBe('ok')
 
     // ESC shortcut hits the modal's cancel, not anything in the root layer.
-    captured.ctx!.dispatchShortcut({
-      kind: 'key',
-      key: 'Escape',
-      ctrl: false,
-      shift: false,
-      alt: false,
-      meta: false,
-    })
+    captured.ctx!.dispatchShortcut(
+      {
+        kind: 'key',
+        key: 'Escape',
+        ctrl: false,
+        shift: false,
+        alt: false,
+        meta: false,
+      },
+      { source: 'test', via: 'shortcut' },
+    )
     expect(onCancel).toHaveBeenCalledOnce()
 
     // Closing restores the root layer's remembered focus ("b").
@@ -316,10 +324,11 @@ describe('useTrigger', () => {
       alt: false,
       meta: false,
     } as const
-    expect(captured.ctx!.dispatchShortcut(input)).toBe(false)
+    const cause = { source: 'test', via: 'shortcut' } as const
+    expect(captured.ctx!.dispatchShortcut(input, cause)).toBe(false)
 
     disabled.value = false
-    expect(captured.ctx!.dispatchShortcut(input)).toBe(true)
+    expect(captured.ctx!.dispatchShortcut(input, cause)).toBe(true)
     expect(onB).toHaveBeenCalledOnce()
   })
 

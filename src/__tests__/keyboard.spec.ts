@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { keyboardAdapter } from '../adapters/keyboard'
-import type { AdapterContext } from '../adapters/types'
+import type { AdapterContext, ShortcutInput } from '../adapters/types'
+import type { TriggerCause } from '../types'
 
 let ctx: {
   move: Mock
@@ -24,9 +25,11 @@ function press(
 function setup(options?: Parameters<typeof keyboardAdapter>[0], shortcutHandled = false) {
   ctx = {
     move: vi.fn<() => void>(),
-    activate: vi.fn<() => void>(),
+    activate: vi.fn<(cause: TriggerCause) => void>(),
     focus: vi.fn<() => void>(),
-    dispatchShortcut: vi.fn<() => boolean>(() => shortcutHandled),
+    dispatchShortcut: vi.fn<(input: ShortcutInput, cause: TriggerCause) => boolean>(
+      () => shortcutHandled,
+    ),
     isRegisteredElement: vi.fn<() => string | null>(() => null),
   }
   adapter = keyboardAdapter(options)
@@ -57,6 +60,15 @@ describe('keyboardAdapter', () => {
     expect(space.defaultPrevented).toBe(true)
   })
 
+  it('reports the causing keydown event to onTrigger', () => {
+    const enter = press('Enter')
+    expect(ctx.activate).toHaveBeenCalledWith({
+      source: 'keyboard',
+      via: 'activate',
+      event: enter,
+    })
+  })
+
   it('supports custom key bindings', () => {
     adapter.teardown()
     setup({ keys: { up: ['w'], down: ['s'], left: ['a'], right: ['d'], activate: ['e'] } })
@@ -74,14 +86,17 @@ describe('keyboardAdapter', () => {
     setup(undefined, true)
 
     const event = press('ArrowRight', { shiftKey: true })
-    expect(ctx.dispatchShortcut).toHaveBeenCalledWith({
-      kind: 'key',
-      key: 'ArrowRight',
-      ctrl: false,
-      shift: true,
-      alt: false,
-      meta: false,
-    })
+    expect(ctx.dispatchShortcut).toHaveBeenCalledWith(
+      {
+        kind: 'key',
+        key: 'ArrowRight',
+        ctrl: false,
+        shift: true,
+        alt: false,
+        meta: false,
+      },
+      { source: 'keyboard', via: 'shortcut', event },
+    )
     expect(ctx.move).not.toHaveBeenCalled()
     expect(event.defaultPrevented).toBe(true)
   })
@@ -107,6 +122,7 @@ describe('keyboardAdapter', () => {
     press('s', { target: input, ctrlKey: true })
     expect(ctx.dispatchShortcut).toHaveBeenCalledWith(
       expect.objectContaining({ key: 's', ctrl: true }),
+      expect.objectContaining({ source: 'keyboard', via: 'shortcut' }),
     )
   })
 

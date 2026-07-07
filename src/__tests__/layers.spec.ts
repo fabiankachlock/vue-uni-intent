@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { FocusManager } from '../focus'
 import { LayerManager, ROOT_LAYER_ID } from '../layers'
 import { TriggerRegistry, type TriggerRecord } from '../registry'
+import type { TriggerCause } from '../types'
 
 type TriggerSetup = {
   id: string
@@ -10,7 +11,7 @@ type TriggerSetup = {
   y?: number
   disabled?: boolean
   autofocus?: boolean
-  onTrigger?: () => void
+  onTrigger?: (cause: TriggerCause) => void
 }
 
 let registry: TriggerRegistry
@@ -24,7 +25,7 @@ function makeTrigger({
   y = 0,
   disabled = false,
   autofocus = false,
-  onTrigger = vi.fn<() => void>(),
+  onTrigger = vi.fn<(cause: TriggerCause) => void>(),
 }: TriggerSetup): TriggerRecord {
   const element = document.createElement('button')
   // jsdom has no layout — stub the rect used by spatial navigation.
@@ -54,7 +55,7 @@ beforeEach(() => {
 
 describe('FocusManager', () => {
   it('focuses, mirrors DOM state, and activates', () => {
-    const onTrigger = vi.fn<() => void>()
+    const onTrigger = vi.fn<(cause: TriggerCause) => void>()
     const a = makeTrigger({ id: 'a', onTrigger })
     const b = makeTrigger({ id: 'b', x: 200 })
 
@@ -69,11 +70,12 @@ describe('FocusManager', () => {
     expect(a.element!.tabIndex).toBe(-1)
     expect(b.element!.hasAttribute('data-uni-focused')).toBe(true)
 
-    focus.activate()
+    const cause = { source: 'test', via: 'activate' } as const
+    focus.activate(cause)
     expect(onTrigger).not.toHaveBeenCalled()
     focus.focus(a)
-    focus.activate()
-    expect(onTrigger).toHaveBeenCalledOnce()
+    focus.activate(cause)
+    expect(onTrigger).toHaveBeenCalledWith(cause)
   })
 
   it('moves spatially and skips disabled triggers', () => {

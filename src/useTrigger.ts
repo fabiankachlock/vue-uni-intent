@@ -1,7 +1,7 @@
 import { computed, getCurrentInstance, inject, onScopeDispose, ref, toValue, watch } from 'vue'
 import { INPUT_CONTEXT_KEY, LAYER_ID_KEY } from './keys'
 import { ROOT_LAYER_ID } from './layers'
-import type { UseTriggerOptions, UseTriggerReturn } from './types'
+import type { ManualTriggerCause, UseTriggerOptions, UseTriggerReturn } from './types'
 
 /**
  * Register a controllable trigger. Bind the returned `ref` to an element to
@@ -66,6 +66,7 @@ export function useTrigger(options: UseTriggerOptions): UseTriggerReturn {
     ref: elementRef,
     focused: computed(() => ctx.focus.focusedRecord.value === record),
     focus: () => ctx.focus.focus(record),
-    trigger: () => record.onTrigger(),
+    trigger: () =>
+      record.onTrigger({ source: 'manual', via: 'manual' } satisfies ManualTriggerCause),
   }
 }

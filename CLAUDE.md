@@ -62,6 +62,10 @@ An adapter turns a raw input into either a navigation intent (`move`/`activate`)
 record, mirroring the change to the DOM. `findNext` is the pure geometry that decides where
 a direction goes.
 
+`activate`/`dispatchShortcut`/manual `.trigger()` all pass a `TriggerCause` (`src/types.ts`)
+to `onTrigger` — `source`, `via`, and any native `event` / adapter detail. The shape is
+open (the core stays input-agnostic); each adapter exports a typed cause + `isXxxCause` guard.
+
 Layer nuance: `useTriggerLayer` uses both `provide(LAYER_ID_KEY)` (for descendant
 `useTrigger` calls) and `ctx.ownLayers` (a `WeakMap` keyed by component instance) so a
 `useTrigger` call **later in the same component's setup** still attaches to the layer —
@@ -76,6 +80,9 @@ provide/inject only reaches descendants.
   makes them directly unit-testable.
 - Adapters must fully own their listeners/loops and clean up in `teardown()`.
 - Every unit-testable module has a sibling spec in `src/__tests__/`.
+- **Update docs on any API/behavior change** — all three surfaces: `README.md`,
+  the Storybook pages `playground/stories/docs/*.mdx` (and the matching
+  `.stories.ts` / `demos/` when one exists), and this `CLAUDE.md`.
 
 ## Commands
 

@@ -1,4 +1,18 @@
+import type { TriggerCause } from '../types'
 import type { AdapterContext, InputAdapter } from './types'
+
+/** `TriggerCause` shape produced by the mouse adapter. */
+export type MouseTriggerCause = {
+  source: 'mouse'
+  via: 'activate' | 'shortcut'
+  /** The `click` (activate) or `mousedown` (shortcut) event that fired the trigger. */
+  event: MouseEvent
+}
+
+/** Narrow a `TriggerCause` to the mouse adapter's fully-typed shape. */
+export function isMouseCause(cause: TriggerCause): cause is MouseTriggerCause {
+  return cause.source === 'mouse'
+}
 
 /**
  * Mouse input via document-level event delegation — no per-element listeners,
@@ -30,14 +44,17 @@ export function mouseAdapter(): InputAdapter {
 
   const onMousedown = (event: MouseEvent) => {
     if (!context || event.button === 0) return
-    const handled = context.dispatchShortcut({
-      kind: 'mouse-button',
-      button: event.button,
-      ctrl: event.ctrlKey,
-      shift: event.shiftKey,
-      alt: event.altKey,
-      meta: event.metaKey,
-    })
+    const handled = context.dispatchShortcut(
+      {
+        kind: 'mouse-button',
+        button: event.button,
+        ctrl: event.ctrlKey,
+        shift: event.shiftKey,
+        alt: event.altKey,
+        meta: event.metaKey,
+      },
+      { source: 'mouse', via: 'shortcut', event } satisfies MouseTriggerCause,
+    )
     if (handled) {
       event.preventDefault()
       if (event.button === 2) suppressContextMenu = true
@@ -58,7 +75,7 @@ export function mouseAdapter(): InputAdapter {
     const id = resolveTrigger(event.target)
     if (id === null) return
     context.focus(id)
-    context.activate()
+    context.activate({ source: 'mouse', via: 'activate', event } satisfies MouseTriggerCause)
   }
 
   return {

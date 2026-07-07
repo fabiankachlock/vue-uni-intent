@@ -38,13 +38,13 @@ export function createInputContext(options: UniIntentOptions): InputContext {
 
   const adapterContext: AdapterContext = {
     move: (direction) => focus.move(direction),
-    activate: () => focus.activate(),
+    activate: (cause) => focus.activate(cause),
     focus: (id) => focus.focusId(id),
-    dispatchShortcut: (input) => {
+    dispatchShortcut: (input, cause) => {
       const records = registry.inLayer(layers.activeLayer.value.id)
       const target = findShortcutTarget(input, records)
       if (!target) return false
-      target.onTrigger()
+      target.onTrigger(cause)
       return true
     },
     isRegisteredElement: (el) => {

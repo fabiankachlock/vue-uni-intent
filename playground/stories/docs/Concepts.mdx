@@ -23,6 +23,14 @@ const { ref, focused, focus, trigger } = useTrigger({
 Trigger ids are unique **within their layer**. `focus()` and `trigger()` let you
 drive a trigger from code (see the _Advanced / Programmatic Control_ story).
 
+## What fired a trigger
+
+`onTrigger` receives a **cause**: `source` (the firing adapter, or `"manual"`),
+`via` (`"activate"` / `"shortcut"` / `"manual"`), and whatever the adapter
+attached — a native event for keyboard/mouse, the button index for gamepad. The
+core stays input-agnostic, so the shape is open; the exported guards
+(`isKeyboardCause`, `isMouseCause`, `isGamepadCause`, `isManualCause`) narrow it.
+
 ## Spatial navigation
 
 There is no focus graph to declare. When a direction is pressed, the core reads
