@@ -17,6 +17,7 @@ export { matchShortcut } from './shortcuts'
 export {
   GamepadAxis,
   GamepadButton,
+  Key,
   MouseButton,
   button,
   key,
@@ -25,6 +26,7 @@ export {
   resolveMouseButton,
   type GamepadButtonName,
   type GamepadButtonRef,
+  type KeyName,
   type MouseButtonName,
   type MouseButtonRef,
 } from './helpers'

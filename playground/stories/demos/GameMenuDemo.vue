@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { button, key, mouseButton } from "vue-uni-intent";
+import { button, GamepadButton, key, Key, mouseButton, MouseButton } from "vue-uni-intent";
 import DemoButton from "../../components/DemoButton.vue";
 import EventLog from "./EventLog.vue";
 import GamepadHint from "./GamepadHint.vue";
@@ -22,7 +22,7 @@ const cycleDifficulty = () => {
   say(`Difficulty: ${difficulty.value}`);
 };
 
-const backShortcuts = [key("Escape"), button("B"), mouseButton("Back")];
+const backShortcuts = [key(Key.Escape), button(GamepadButton.B), mouseButton(MouseButton.Back)];
 </script>
 
 <template>

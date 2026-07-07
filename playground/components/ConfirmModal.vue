@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useTriggerLayer, key, button, mouseButton } from "vue-uni-intent";
+import { useTriggerLayer, key, Key, button, GamepadButton, mouseButton, MouseButton } from "vue-uni-intent";
 import DemoButton from "./DemoButton.vue";
 
 const emit = defineEmits<{ confirm: []; cancel: [] }>();
@@ -20,7 +20,7 @@ useTriggerLayer({ id: "confirm-modal" });
         <DemoButton
           id="cancel"
           label="Cancel"
-          :shortcuts="[key('Escape'), button('B'), mouseButton('Back')]"
+          :shortcuts="[key(Key.Escape), button(GamepadButton.B), mouseButton(MouseButton.Back)]"
           @trigger="emit('cancel')"
         />
       </div>

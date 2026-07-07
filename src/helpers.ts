@@ -1,6 +1,4 @@
-import type { GamepadShortcut, KeyShortcut, Modifiers, MouseShortcut } from './types'
-
-// TODO: Nintendo Controllers have inverted A/B and X/Y buttons
+import type { GamepadShortcut, KeyShortcut, Modifiers, MouseShortcut } from "./types";
 
 /** Standard-mapping gamepad button indices (https://w3c.github.io/gamepad/#remapping). */
 export const GamepadButton = {
@@ -21,9 +19,9 @@ export const GamepadButton = {
   DPadLeft: 14,
   DPadRight: 15,
   Home: 16,
-} as const
+} as const;
 
-export type GamepadButtonName = keyof typeof GamepadButton
+export type GamepadButtonName = keyof typeof GamepadButton;
 
 /** Standard-mapping gamepad axis indices. */
 export const GamepadAxis = {
@@ -31,23 +29,48 @@ export const GamepadAxis = {
   LeftY: 1,
   RightX: 2,
   RightY: 3,
-} as const
+} as const;
 
-export type GamepadButtonRef = number | GamepadButtonName
+export type GamepadButtonRef = number | GamepadButtonName;
 
 /** Resolve a button name or raw index to the standard-mapping index. */
 export function resolveGamepadButton(button: GamepadButtonRef): number {
-  return typeof button === 'number' ? button : GamepadButton[button]
+  return typeof button === "number" ? button : GamepadButton[button];
 }
 
-/** Build a keyboard shortcut descriptor: `key("Escape")`, `key("s", { ctrl: true })`. */
+/**
+ * Common `KeyboardEvent.key` values for use with `key()`, e.g. `key(Key.Escape)`.
+ * `key()` accepts any string, so this is just autocompletion + typo-safety for
+ * the frequent ones.
+ */
+export const Key = {
+  Enter: "Enter",
+  Escape: "Escape",
+  Tab: "Tab",
+  Space: " ",
+  Backspace: "Backspace",
+  Delete: "Delete",
+  Insert: "Insert",
+  Home: "Home",
+  End: "End",
+  PageUp: "PageUp",
+  PageDown: "PageDown",
+  ArrowUp: "ArrowUp",
+  ArrowDown: "ArrowDown",
+  ArrowLeft: "ArrowLeft",
+  ArrowRight: "ArrowRight",
+} as const;
+
+export type KeyName = keyof typeof Key;
+
+/** Build a keyboard shortcut descriptor: `key("Escape")`, `key(Key.Escape, { ctrl: true })`. */
 export function key(key: string, mods?: Modifiers): KeyShortcut {
-  return { key, ...mods }
+  return { key, ...mods };
 }
 
 /** Build a gamepad shortcut descriptor: `button("B")` or `button(1)`. */
 export function button(button: GamepadButtonRef): GamepadShortcut {
-  return { button: resolveGamepadButton(button) }
+  return { button: resolveGamepadButton(button) };
 }
 
 /** `MouseEvent.button` indices. */
@@ -57,18 +80,18 @@ export const MouseButton = {
   Right: 2,
   Back: 3,
   Forward: 4,
-} as const
+} as const;
 
-export type MouseButtonName = keyof typeof MouseButton
+export type MouseButtonName = keyof typeof MouseButton;
 
-export type MouseButtonRef = number | MouseButtonName
+export type MouseButtonRef = number | MouseButtonName;
 
 /** Resolve a mouse button name or raw index to the `MouseEvent.button` index. */
 export function resolveMouseButton(button: MouseButtonRef): number {
-  return typeof button === 'number' ? button : MouseButton[button]
+  return typeof button === "number" ? button : MouseButton[button];
 }
 
 /** Build a mouse shortcut descriptor: `mouseButton("Back")` or `mouseButton("Right", { ctrl: true })`. */
 export function mouseButton(button: MouseButtonRef, mods?: Modifiers): MouseShortcut {
-  return { mouseButton: resolveMouseButton(button), ...mods }
+  return { mouseButton: resolveMouseButton(button), ...mods };
 }

@@ -1,5 +1,13 @@
 <script setup lang="ts">
-import { button, key, mouseButton, type ShortcutDescriptor } from "vue-uni-intent";
+import {
+  button,
+  GamepadButton,
+  key,
+  Key,
+  mouseButton,
+  MouseButton,
+  type ShortcutDescriptor,
+} from "vue-uni-intent";
 import DemoButton from "../../components/DemoButton.vue";
 import DemoPane from "./DemoPane.vue";
 import EventLog from "./EventLog.vue";
@@ -25,19 +33,19 @@ const actions: { id: string; label: string; hint: string; shortcuts: ShortcutDes
     id: "menu",
     label: "Menu",
     hint: "M · gamepad Start",
-    shortcuts: [key("m"), button("Start")],
+    shortcuts: [key("m"), button(GamepadButton.Start)],
   },
   {
     id: "inspect",
     label: "Inspect",
     hint: "Right mouse button",
-    shortcuts: [mouseButton("Right")],
+    shortcuts: [mouseButton(MouseButton.Right)],
   },
   {
     id: "back",
     label: "Back",
     hint: "Esc · gamepad B · mouse back button",
-    shortcuts: [key("Escape"), button("B"), mouseButton("Back")],
+    shortcuts: [key(Key.Escape), button(GamepadButton.B), mouseButton(MouseButton.Back)],
   },
 ];
 </script>

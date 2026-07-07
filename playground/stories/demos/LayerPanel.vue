@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { button, key, useTriggerLayer } from "vue-uni-intent";
+import { button, GamepadButton, key, Key, useTriggerLayer } from "vue-uni-intent";
 import DemoButton from "../../components/DemoButton.vue";
 
 const props = defineProps<{ depth: number; maxDepth: number }>();
@@ -23,7 +23,7 @@ useTriggerLayer({ id: `panel-${props.depth}` });
       <DemoButton
         :id="`close-${depth}`"
         label="Close"
-        :shortcuts="[key('Escape'), button('B')]"
+        :shortcuts="[key(Key.Escape), button(GamepadButton.B)]"
         @trigger="emit('close')"
       />
     </div>

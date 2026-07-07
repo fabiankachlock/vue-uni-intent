@@ -11,6 +11,7 @@ import {
   useTrigger,
   useTriggerLayer,
   key,
+  Key,
 } from "vue-uni-intent";
 
 const results: string[] = [];
@@ -42,7 +43,7 @@ const Modal = defineComponent({
         fired.close = (fired.close ?? 0) + 1;
         modalOpen.value = false;
       },
-      shortcuts: [key("Escape")],
+      shortcuts: [key(Key.Escape)],
     });
     return () => h("button", { ref: el, id: "close" }, "close");
   },
