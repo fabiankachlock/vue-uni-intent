@@ -40,6 +40,8 @@
     "vue": "^3.5.38"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.0",
+    "@commitlint/config-conventional": "^21.2.0",
     "@storybook/vue3-vite": "^10.4.6",
     "@tsconfig/node24": "^24.0.4",
     "@types/jsdom": "^28.0.3",
