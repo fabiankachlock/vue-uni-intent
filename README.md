@@ -145,3 +145,9 @@ disabled triggers, custom WASD bindings), focus strategies, global shortcuts,
 modal and nested layers, programmatic control, and a full game-menu example.
 Stories override plugin options per story via `parameters.uniIntent` (see
 `.storybook/preview.ts`).
+
+## AI assistance
+
+This library was built with the help of AI (Claude). AI was used to assist with
+implementation, tests, and documentation; all output was reviewed and is maintained
+by a human.
