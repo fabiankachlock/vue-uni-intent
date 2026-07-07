@@ -1,6 +1,19 @@
 import type { ShortcutInput } from './adapters/types'
 import type { TriggerRecord } from './registry'
-import type { ShortcutDescriptor } from './types'
+import type { Modifiers, ShortcutDescriptor } from './types'
+
+/** Modifiers not named in the descriptor must be unpressed. */
+function matchModifiers(
+  descriptor: Modifiers,
+  input: { ctrl: boolean; shift: boolean; alt: boolean; meta: boolean },
+): boolean {
+  return (
+    (descriptor.ctrl ?? false) === input.ctrl &&
+    (descriptor.shift ?? false) === input.shift &&
+    (descriptor.alt ?? false) === input.alt &&
+    (descriptor.meta ?? false) === input.meta
+  )
+}
 
 /**
  * Match a raw input against one shortcut descriptor. Keys compare
@@ -10,17 +23,17 @@ export function matchShortcut(input: ShortcutInput, descriptor: ShortcutDescript
   if (input.kind === 'key') {
     if (!('key' in descriptor)) return false
     return (
-      descriptor.key.toLowerCase() === input.key.toLowerCase() &&
-      (descriptor.ctrl ?? false) === input.ctrl &&
-      (descriptor.shift ?? false) === input.shift &&
-      (descriptor.alt ?? false) === input.alt &&
-      (descriptor.meta ?? false) === input.meta
+      descriptor.key.toLowerCase() === input.key.toLowerCase() && matchModifiers(descriptor, input)
     )
   }
   if (input.kind === 'gamepad-button') {
     return 'button' in descriptor && descriptor.button === input.button
   }
-  return 'mouseButton' in descriptor && descriptor.mouseButton === input.button
+  return (
+    'mouseButton' in descriptor &&
+    descriptor.mouseButton === input.button &&
+    matchModifiers(descriptor, input)
+  )
 }
 
 /**

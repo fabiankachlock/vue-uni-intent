@@ -93,10 +93,11 @@ const { isActive } = useTriggerLayer({ id: "settings-modal" });
 ```ts
 import { key, button, mouseButton, GamepadButton, MouseButton, GamepadAxis } from "vue-uni-intent";
 
-key("Escape");            // { key: "Escape" }
-key("s", { ctrl: true }); // { key: "s", ctrl: true }
-button("B");              // { button: 1 }  (standard-mapping index via GamepadButton)
-mouseButton("Back");      // { mouseButton: 3 }
+key("Escape");                      // { key: "Escape" }
+key("s", { ctrl: true });           // { key: "s", ctrl: true }
+button("B");                        // { button: 1 }  (standard-mapping index via GamepadButton)
+mouseButton("Back");                // { mouseButton: 3 }
+mouseButton("Right", { ctrl: true }); // { mouseButton: 2, ctrl: true }
 ```
 
 Note that gamepad names follow the standard mapping by position. On Nintendo

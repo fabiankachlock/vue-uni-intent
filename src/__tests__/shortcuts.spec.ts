@@ -4,16 +4,25 @@ import { button, key, mouseButton } from '../helpers'
 import type { TriggerRecord } from '../registry'
 import { findShortcutTarget, matchShortcut } from '../shortcuts'
 
-const keyInput = (
-  k: string,
-  mods: Partial<Record<'ctrl' | 'shift' | 'alt' | 'meta', boolean>> = {},
-): ShortcutInput => ({
-  kind: 'key',
-  key: k,
+type Mods = Partial<Record<'ctrl' | 'shift' | 'alt' | 'meta', boolean>>
+
+const modFlags = (mods: Mods) => ({
   ctrl: mods.ctrl ?? false,
   shift: mods.shift ?? false,
   alt: mods.alt ?? false,
   meta: mods.meta ?? false,
+})
+
+const keyInput = (k: string, mods: Mods = {}): ShortcutInput => ({
+  kind: 'key',
+  key: k,
+  ...modFlags(mods),
+})
+
+const mouseInput = (b: number, mods: Mods = {}): ShortcutInput => ({
+  kind: 'mouse-button',
+  button: b,
+  ...modFlags(mods),
 })
 
 describe('matchShortcut', () => {
@@ -33,7 +42,7 @@ describe('matchShortcut', () => {
 
   it('discriminates key, gamepad, and mouse descriptors', () => {
     const gamepadB: ShortcutInput = { kind: 'gamepad-button', button: 1 }
-    const mouseBack: ShortcutInput = { kind: 'mouse-button', button: 3 }
+    const mouseBack = mouseInput(3)
 
     expect(matchShortcut(gamepadB, button('B'))).toBe(true)
     expect(matchShortcut(gamepadB, mouseButton(1))).toBe(false)
@@ -43,6 +52,17 @@ describe('matchShortcut', () => {
     expect(matchShortcut(mouseBack, button(3))).toBe(false)
 
     expect(matchShortcut(keyInput('b'), button('B'))).toBe(false)
+  })
+
+  it('requires unspecified modifiers to be unpressed on mouse buttons', () => {
+    expect(matchShortcut(mouseInput(2, { ctrl: true }), mouseButton('Right'))).toBe(false)
+    expect(matchShortcut(mouseInput(2, { ctrl: true }), mouseButton('Right', { ctrl: true }))).toBe(
+      true,
+    )
+    expect(
+      matchShortcut(mouseInput(2, { ctrl: true, shift: true }), mouseButton('Right', { ctrl: true })),
+    ).toBe(false)
+    expect(matchShortcut(mouseInput(2), mouseButton('Right', { ctrl: true }))).toBe(false)
   })
 })
 

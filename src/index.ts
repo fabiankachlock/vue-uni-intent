@@ -34,6 +34,7 @@ export type {
   Direction,
   GamepadShortcut,
   KeyShortcut,
+  Modifiers,
   MouseShortcut,
   ShortcutDescriptor,
   TriggerId,

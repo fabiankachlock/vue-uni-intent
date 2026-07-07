@@ -1,4 +1,4 @@
-import type { GamepadShortcut, KeyShortcut, MouseShortcut } from './types'
+import type { GamepadShortcut, KeyShortcut, Modifiers, MouseShortcut } from './types'
 
 // TODO: Nintendo Controllers have inverted A/B and X/Y buttons
 
@@ -41,10 +41,7 @@ export function resolveGamepadButton(button: GamepadButtonRef): number {
 }
 
 /** Build a keyboard shortcut descriptor: `key("Escape")`, `key("s", { ctrl: true })`. */
-export function key(
-  key: string,
-  mods?: Pick<KeyShortcut, 'ctrl' | 'shift' | 'alt' | 'meta'>,
-): KeyShortcut {
+export function key(key: string, mods?: Modifiers): KeyShortcut {
   return { key, ...mods }
 }
 
@@ -71,7 +68,7 @@ export function resolveMouseButton(button: MouseButtonRef): number {
   return typeof button === 'number' ? button : MouseButton[button]
 }
 
-/** Build a mouse shortcut descriptor: `mouseButton("Back")` or `mouseButton(3)`. */
-export function mouseButton(button: MouseButtonRef): MouseShortcut {
-  return { mouseButton: resolveMouseButton(button) }
+/** Build a mouse shortcut descriptor: `mouseButton("Back")` or `mouseButton("Right", { ctrl: true })`. */
+export function mouseButton(button: MouseButtonRef, mods?: Modifiers): MouseShortcut {
+  return { mouseButton: resolveMouseButton(button), ...mods }
 }

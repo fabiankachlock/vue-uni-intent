@@ -5,14 +5,18 @@ export type TriggerId = string
 
 export type Direction = 'up' | 'down' | 'left' | 'right'
 
-/** Matches a keyboard press. Unspecified modifiers must NOT be pressed. */
-export type KeyShortcut = {
-  /** `KeyboardEvent.key` value, e.g. `"Escape"`, `"Backspace"`, `"q"`. */
-  key: string
+/** Modifier keys held during a press. Unspecified modifiers must NOT be pressed. */
+export type Modifiers = {
   ctrl?: boolean
   shift?: boolean
   alt?: boolean
   meta?: boolean
+}
+
+/** Matches a keyboard press. Unspecified modifiers must NOT be pressed. */
+export type KeyShortcut = Modifiers & {
+  /** `KeyboardEvent.key` value, e.g. `"Escape"`, `"Backspace"`, `"q"`. */
+  key: string
 }
 
 /** Matches a gamepad button press (standard mapping index, see `GamepadButton`). */
@@ -22,10 +26,11 @@ export type GamepadShortcut = {
 
 /**
  * Matches a mouse button press (`MouseEvent.button` index, see `MouseButton`).
- * The built-in mouse adapter dispatches these for non-left buttons only —
- * left click stays reserved for activating the hovered trigger.
+ * Supports the same modifiers as `KeyShortcut`. The built-in mouse adapter
+ * dispatches these for non-left buttons only — left click stays reserved for
+ * activating the hovered trigger.
  */
-export type MouseShortcut = {
+export type MouseShortcut = Modifiers & {
   mouseButton: number
 }
 

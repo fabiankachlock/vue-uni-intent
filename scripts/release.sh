@@ -26,7 +26,7 @@ fi
 
 echo "Running checks..."
 pnpm run lint
-pnpm run test:unit
+pnpm run test
 pnpm run build
 
 npm version "$bump" -m "release: v%s"

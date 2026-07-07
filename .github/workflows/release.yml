@@ -36,7 +36,7 @@ jobs:
           fi
 
       - name: Unit tests
-        run: pnpm run test:unit
+        run: pnpm run test
 
       - name: Build
         run: pnpm run build

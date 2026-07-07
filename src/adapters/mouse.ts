@@ -30,7 +30,14 @@ export function mouseAdapter(): InputAdapter {
 
   const onMousedown = (event: MouseEvent) => {
     if (!context || event.button === 0) return
-    const handled = context.dispatchShortcut({ kind: 'mouse-button', button: event.button })
+    const handled = context.dispatchShortcut({
+      kind: 'mouse-button',
+      button: event.button,
+      ctrl: event.ctrlKey,
+      shift: event.shiftKey,
+      alt: event.altKey,
+      meta: event.metaKey,
+    })
     if (handled) {
       event.preventDefault()
       if (event.button === 2) suppressContextMenu = true

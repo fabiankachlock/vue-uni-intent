@@ -4,7 +4,7 @@ import type { Direction, TriggerId } from '../types'
 export type ShortcutInput =
   | { kind: 'key'; key: string; ctrl: boolean; shift: boolean; alt: boolean; meta: boolean }
   | { kind: 'gamepad-button'; button: number }
-  | { kind: 'mouse-button'; button: number }
+  | { kind: 'mouse-button'; button: number; ctrl: boolean; shift: boolean; alt: boolean; meta: boolean }
 
 /**
  * The core's interface handed to adapters. This is the entire coupling surface

@@ -83,8 +83,27 @@ describe('mouseAdapter', () => {
 
   it('dispatches non-left buttons as mouse shortcuts', () => {
     fire(document.body, 'mousedown', { button: 3 })
-    expect(ctx.dispatchShortcut).toHaveBeenCalledWith({ kind: 'mouse-button', button: 3 })
+    expect(ctx.dispatchShortcut).toHaveBeenCalledWith({
+      kind: 'mouse-button',
+      button: 3,
+      ctrl: false,
+      shift: false,
+      alt: false,
+      meta: false,
+    })
     expect(ctx.activate).not.toHaveBeenCalled()
+  })
+
+  it('forwards held modifiers with the mouse shortcut', () => {
+    fire(document.body, 'mousedown', { button: 2, ctrlKey: true, shiftKey: true })
+    expect(ctx.dispatchShortcut).toHaveBeenCalledWith({
+      kind: 'mouse-button',
+      button: 2,
+      ctrl: true,
+      shift: true,
+      alt: false,
+      meta: false,
+    })
   })
 
   it('never dispatches left mousedown as a shortcut', () => {
