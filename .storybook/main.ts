@@ -1,7 +1,25 @@
 import type { StorybookConfig } from "@storybook/vue3-vite";
+import remarkGfm from "remark-gfm";
 
 const config: StorybookConfig = {
-  stories: ["../playground/stories/**/*.stories.ts"],
+  stories: [
+    "../playground/stories/**/*.mdx",
+    "../playground/stories/**/*.stories.ts",
+  ],
+  addons: [
+    {
+      // remark-gfm enables GitHub-flavored markdown (tables, etc.) in the
+      // MDX docs pages — not on by default in this Storybook setup.
+      name: "@storybook/addon-docs",
+      options: {
+        mdxPluginOptions: {
+          mdxCompileOptions: {
+            remarkPlugins: [remarkGfm],
+          },
+        },
+      },
+    },
+  ],
   framework: {
     name: "@storybook/vue3-vite",
     options: {

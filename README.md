@@ -1,6 +1,6 @@
 # vue-uni-intent
 
-Game-menu style button control for Vue 3: one focused trigger at a time, navigable with keyboard, mouse, and gamepad through a single API.
+A universal intent system for Game-menu style button control for Vue 3: one focused trigger at a time, navigable with keyboard, mouse, and gamepad through a single API.
 
 - Spatial navigation is computed from the DOM positions of the registered triggers, so "where does *up* go?" is answered automatically and there is no focus graph to maintain.
 - Keyboard, mouse, and gamepad ship as separate adapters that you configure explicitly. The core only knows the `InputAdapter` contract, so input sources can be omitted, replaced, or added.

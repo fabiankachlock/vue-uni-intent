@@ -3,7 +3,7 @@ import ModalDemo from "./demos/ModalDemo.vue";
 import NestedLayersDemo from "./demos/NestedLayersDemo.vue";
 
 const meta = {
-  title: "Layers",
+  title: "Basics/Layers",
 } satisfies Meta;
 
 export default meta;

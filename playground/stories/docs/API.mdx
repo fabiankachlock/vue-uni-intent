@@ -1,0 +1,89 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="API Reference" />
+
+# API Reference
+
+Everything is imported from `vue-uni-intent`.
+
+## `createUniIntent(options)`
+
+Creates the Vue plugin. Install it with `app.use(...)`.
+
+| Option         | Type                    | Default   | Description                                                        |
+| -------------- | ----------------------- | --------- | ----------------------------------------------------------------- |
+| `adapters`     | `InputAdapter[]`        | —         | Input sources to install. Required and explicit.                  |
+| `wrap`         | `boolean`               | `false`   | Wrap around to the opposite edge when navigating past the last trigger. |
+| `initialFocus` | `"first" \| "none"`     | `"first"` | Initial focus strategy for the root layer.                        |
+
+## `useTrigger(options)`
+
+Registers a controllable trigger.
+
+**Options**
+
+| Option      | Type                          | Description                                                      |
+| ----------- | ----------------------------- | --------------------------------------------------------------- |
+| `id`        | `string`                      | Unique within its layer.                                        |
+| `onTrigger` | `() => void`                  | Called on activation or a matching shortcut.                    |
+| `shortcuts` | `ShortcutDescriptor[]`        | Inputs that fire this trigger regardless of focus.              |
+| `disabled`  | `MaybeRefOrGetter<boolean>`   | Disabled triggers are skipped by navigation and shortcuts.      |
+| `autofocus` | `boolean`                     | Receive the layer's initial focus.                              |
+
+**Returns**
+
+| Field     | Type                        | Description                                            |
+| --------- | --------------------------- | ------------------------------------------------------ |
+| `ref`     | `Ref<HTMLElement \| null>`  | Bind to the element. Leave unbound for a pure shortcut. |
+| `focused` | `ComputedRef<boolean>`      | Whether this trigger is currently focused.             |
+| `focus`   | `() => void`                | Programmatically focus this trigger.                   |
+| `trigger` | `() => void`                | Programmatically activate this trigger.                |
+
+## `useTriggerLayer(options?)`
+
+Scopes descendant triggers to a new focus layer for the component's lifetime.
+
+- **Options:** `id?` (auto-generated if omitted), `initialFocus?` (a trigger id
+  to focus when the layer activates).
+- **Returns:** `{ id, isActive }` — `isActive` is a `ComputedRef<boolean>` that
+  is `true` while the layer is topmost.
+
+`ROOT_LAYER_ID` is exported for referencing the always-present base layer.
+
+## Adapters
+
+- **`keyboardAdapter(options?)`** — `options.keys` maps `up` / `down` / `left` /
+  `right` / `activate` to arrays of `KeyboardEvent.key` values.
+- **`mouseAdapter()`** — hover to focus, left-click to activate; non-left
+  buttons dispatch shortcuts.
+- **`gamepadAdapter(options?)`** — `deadzone`, `initialRepeatDelay`,
+  `repeatInterval`. Also exports `pollGamepads`, `createGamepadPollState` for
+  custom polling loops.
+
+## Shortcut helpers
+
+```ts
+import { key, button, mouseButton } from "vue-uni-intent";
+
+key("Escape"); // { key: "Escape" }
+key("s", { ctrl: true }); // { key: "s", ctrl: true }
+button("B"); // { button: 1 } — standard-mapping index via GamepadButton
+mouseButton("Back"); // { mouseButton: 3 }
+mouseButton("Right", { ctrl: true }); // { mouseButton: 2, ctrl: true }
+```
+
+Name→index constants are exported for readability and typo-safety:
+`Key`, `GamepadButton`, `GamepadAxis`, and `MouseButton`
+(with `resolveGamepadButton` / `resolveMouseButton`).
+
+## Low-level exports
+
+For custom adapters or testing outside Vue:
+
+- **`findNext(from, candidates, direction, options?)`** — the pure spatial
+  navigation function.
+- **`matchShortcut(input, descriptor)`** — match a raw input against one
+  shortcut descriptor.
+
+All public types (`UniIntentOptions`, `UseTriggerOptions`, `InputAdapter`,
+`AdapterContext`, `ShortcutDescriptor`, …) are exported as well.

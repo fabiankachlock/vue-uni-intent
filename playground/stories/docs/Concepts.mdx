@@ -1,0 +1,81 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Concepts" />
+
+# Concepts
+
+## Triggers
+
+A **trigger** is a controllable target registered with `useTrigger()`. Bind its
+`ref` to an element to make it focusable and navigable; leave the `ref` unbound
+and the trigger becomes a **pure shortcut handler** — it participates in the
+trigger system but not in spatial navigation.
+
+```ts
+const { ref, focused, focus, trigger } = useTrigger({
+  id: "confirm",
+  onTrigger: save,
+  disabled: () => busy.value, // skipped by navigation and shortcuts
+  autofocus: true, // take the layer's initial focus
+});
+```
+
+Trigger ids are unique **within their layer**. `focus()` and `trigger()` let you
+drive a trigger from code (see the _Advanced / Programmatic Control_ story).
+
+## Spatial navigation
+
+There is no focus graph to declare. When a direction is pressed, the core reads
+the on-screen rectangles of the active layer's triggers and picks the best
+target in that direction — favoring candidates that are close and aligned on the
+cross axis. Disabled and zero-size triggers are skipped.
+
+With `wrap: true`, walking past an edge cycles to the opposite side of the same
+row or column; with `wrap: false` (the default) it stops. The _Basics / Grid
+Navigation_ stories demonstrate both, plus disabled cells and custom key
+bindings.
+
+## Focus layers
+
+A **layer** scopes navigation and shortcuts. The topmost layer owns all input;
+the root layer is always at the bottom. `useTriggerLayer()` pushes a layer for
+its component's lifetime — ideal for modals:
+
+```ts
+import { useTriggerLayer } from "vue-uni-intent";
+
+const { isActive } = useTriggerLayer({ id: "settings-modal" });
+```
+
+While the layer is mounted and topmost, only its descendant triggers are
+reachable. Unmounting it restores the previous layer's focus. Layers stack
+arbitrarily deep — see the _Layers_ stories.
+
+## Shortcuts
+
+Shortcuts fire a trigger **regardless of what is focused**, as long as the
+trigger is in the active layer. They are built with helper functions and unified
+across input kinds:
+
+```ts
+import { key, button, mouseButton } from "vue-uni-intent";
+
+shortcuts: [key("Escape"), button("B"), mouseButton("Back")];
+```
+
+Modifiers not named in a descriptor must **not** be pressed, and keys match
+case-insensitively. The built-in mouse adapter dispatches shortcuts for
+non-left buttons only — left click stays reserved for activating the hovered
+trigger.
+
+## Adapters
+
+An **adapter** is an isolated input source. Adapters own their listeners/loops
+entirely and talk to the core only through the `AdapterContext` they receive —
+they never see the registry, layers, or other adapters. This is why input
+sources can be added, removed, or replaced freely, and why writing a custom
+adapter (touch, voice, a custom protocol) only means implementing
+`setup`/`teardown` against that one small interface.
+
+The library ships three: `keyboardAdapter`, `mouseAdapter`, and
+`gamepadAdapter`.

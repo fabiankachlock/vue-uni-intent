@@ -1,0 +1,35 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Introduction" />
+
+# vue-uni-intent
+
+Game-menu-style button control for Vue 3: **one focused trigger at a time**,
+navigable with keyboard, mouse, and gamepad through a single API.
+
+- **Automatic spatial navigation.** "Where does _up_ go?" is answered from the
+  DOM positions of the registered triggers — there is no focus graph to
+  maintain.
+- **Explicit, swappable adapters.** Keyboard, mouse, and gamepad ship as
+  separate input adapters that you configure by hand. The core only knows the
+  `InputAdapter` contract, so input sources can be omitted, replaced, or added.
+- **Unified shortcuts.** `Escape`, gamepad `B`, and the mouse back button can
+  all fire the same trigger, regardless of what is focused.
+- **Focus layers.** A modal can confine navigation and shortcuts to its own
+  triggers, then restore the previous focus when it closes.
+- **Real, accessible focus.** Triggers use `element.focus()` with a roving
+  tabindex, so native <kbd>Tab</kbd> keeps working. A `data-uni-focused`
+  attribute is exposed for styling.
+
+## Explore the docs
+
+- **Getting Started** — install the package and wire up the plugin.
+- **Concepts** — triggers, layers, shortcuts, adapters, and how spatial
+  navigation is computed.
+- **API Reference** — the exported functions, composables, and helpers.
+- **Basics / Layers / Advanced / Examples** — live, controllable demos. Click
+  a demo and drive it with the keyboard, mouse, or a connected gamepad.
+
+> **Tip:** the stories are interactive. Focus a demo pane and press the arrow
+> keys, hover with the mouse, or plug in a controller to see navigation and
+> shortcuts respond in real time.

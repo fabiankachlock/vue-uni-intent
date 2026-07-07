@@ -1,11 +1,29 @@
 {
   "name": "vue-uni-intent",
   "version": "1.0.0-alpha.1",
+  "description": "Game-menu-style focus control for Vue 3, navigable by keyboard, mouse, and gamepad featuring spatial navigation using from DOM positions.",
+  "keywords": [
+    "vue",
+    "vue3",
+    "spatial-navigation",
+    "focus-management",
+    "keyboard-navigation",
+    "gamepad",
+    "accessibility",
+    "roving-tabindex",
+    "game-menu",
+    "composables"
+  ],
   "type": "module",
   "packageManager": "pnpm@11.9.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/fabiankachlock/vue-uni-intent.git"
+  },
+  "author": {
+    "name": "Fabian Kachlock",
+    "email": "contact@fabiankachlock.dev",
+    "url": "https://fabiankachlock.dev"
   },
   "files": [
     "dist"
@@ -42,6 +60,7 @@
   "devDependencies": {
     "@commitlint/cli": "^21.2.0",
     "@commitlint/config-conventional": "^21.2.0",
+    "@storybook/addon-docs": "^10.4.6",
     "@storybook/vue3-vite": "^10.4.6",
     "@tsconfig/node24": "^24.0.4",
     "@types/jsdom": "^28.0.3",
@@ -62,6 +81,7 @@
     "npm-run-all2": "^9.0.2",
     "oxfmt": "^0.58.0",
     "oxlint": "~1.73.0",
+    "remark-gfm": "^4.0.1",
     "storybook": "^10.4.6",
     "typescript": "^6.0.3",
     "vite": "^8.1.3",

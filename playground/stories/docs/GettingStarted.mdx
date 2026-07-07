@@ -1,0 +1,90 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Getting Started" />
+
+# Getting Started
+
+## Install
+
+```sh
+npm install vue-uni-intent
+# or: pnpm add vue-uni-intent / yarn add vue-uni-intent
+```
+
+Requires Vue `^3.5`.
+
+## Install the plugin
+
+Adapters are explicit — the core is input-source-agnostic, so you pass exactly
+the input sources you want.
+
+```ts
+import { createApp } from "vue";
+import {
+  createUniIntent,
+  keyboardAdapter,
+  mouseAdapter,
+  gamepadAdapter,
+} from "vue-uni-intent";
+
+createApp(App)
+  .use(
+    createUniIntent({
+      adapters: [
+        keyboardAdapter({
+          // all keys are configurable; these are the defaults
+          keys: {
+            up: ["ArrowUp"],
+            down: ["ArrowDown"],
+            left: ["ArrowLeft"],
+            right: ["ArrowRight"],
+            activate: ["Enter", " "],
+          },
+        }),
+        mouseAdapter(),
+        gamepadAdapter({ deadzone: 0.5, initialRepeatDelay: 400, repeatInterval: 150 }),
+      ],
+      wrap: false, // wrap-around navigation at the edges
+      initialFocus: "first", // or "none"
+    }),
+  )
+  .mount("#app");
+```
+
+## Register a trigger
+
+Bind the returned `ref` to a focusable element. Every trigger that has an
+element participates in spatial navigation automatically.
+
+```vue
+<script setup lang="ts">
+import { useTrigger, key, button, mouseButton } from "vue-uni-intent";
+
+const { ref: el, focused } = useTrigger({
+  id: "back",
+  onTrigger: () => router.back(),
+  // optional: the same handler fires on Esc, gamepad B, or the mouse back button
+  shortcuts: [key("Escape"), button("B"), mouseButton("Back")],
+});
+</script>
+
+<template>
+  <button ref="el" :class="{ active: focused }">Back</button>
+</template>
+```
+
+## Style the focused trigger
+
+The focused element carries a `data-uni-focused` attribute:
+
+```css
+[data-uni-focused] {
+  outline: 3px solid dodgerblue;
+}
+```
+
+## Next steps
+
+- Read **Concepts** for the mental model behind triggers, layers, and adapters.
+- Browse the **Basics**, **Layers**, and **Examples** stories for live,
+  editable demos of every feature.

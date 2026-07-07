@@ -35,6 +35,10 @@ const preview: Preview = {
     options: {
       storySort: {
         order: [
+          "Introduction",
+          "Getting Started",
+          "Concepts",
+          "API Reference",
           "Basics",
           ["Grid Navigation", "Focus", "Shortcuts"],
           "Layers",
