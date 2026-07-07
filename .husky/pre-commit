@@ -1,0 +1,9 @@
+#!/bin/sh
+
+echo "Running pre-commit hooks..."
+
+pnpm run format
+pnpm run lint
+pnpm run test
+pnpm run type-check
+pnpm run build-only
