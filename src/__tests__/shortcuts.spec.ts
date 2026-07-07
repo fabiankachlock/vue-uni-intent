@@ -60,7 +60,10 @@ describe('matchShortcut', () => {
       true,
     )
     expect(
-      matchShortcut(mouseInput(2, { ctrl: true, shift: true }), mouseButton('Right', { ctrl: true })),
+      matchShortcut(
+        mouseInput(2, { ctrl: true, shift: true }),
+        mouseButton('Right', { ctrl: true }),
+      ),
     ).toBe(false)
     expect(matchShortcut(mouseInput(2), mouseButton('Right', { ctrl: true }))).toBe(false)
   })

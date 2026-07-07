@@ -27,7 +27,6 @@ export default defineConfig(({ command }) => {
       vue(),
       dts({
         tsconfigPath: "./tsconfig.app.json",
-        rollupTypes: true,
       }),
     ],
     build: {
