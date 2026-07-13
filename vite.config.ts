@@ -27,6 +27,13 @@ export default defineConfig(({ command }) => {
       vue(),
       dts({
         tsconfigPath: "./tsconfig.app.json",
+        // Only emit declarations for the library source, not the playground /
+        // storybook files that tsconfig.app.json also includes for type-checking.
+        include: ["src/**/*"],
+        exclude: ["src/**/__tests__/*"],
+        // Flatten output to dist/ (matches package.json "types": "./dist/index.d.ts")
+        // instead of dist/src/.
+        entryRoot: "src",
       }),
     ],
     build: {
