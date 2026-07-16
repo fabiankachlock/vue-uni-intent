@@ -19,7 +19,7 @@ export {
   type GamepadTriggerCause,
 } from './adapters/gamepad'
 
-export { findNext } from './navigation'
+export { findNext, explainNext } from './navigation'
 export { matchShortcut } from './shortcuts'
 export {
   GamepadAxis,
@@ -41,6 +41,7 @@ export {
 export { isManualCause } from './types'
 export type {
   UniIntentOptions,
+  UniIntentDebugOptions,
   Direction,
   GamepadShortcut,
   KeyShortcut,
@@ -56,4 +57,11 @@ export type {
   UseTriggerReturn,
 } from './types'
 export type { AdapterContext, InputAdapter, ShortcutInput } from './adapters/types'
-export type { NavCandidate, NavOptions, NavRect } from './navigation'
+export type {
+  NavCandidate,
+  NavCandidateExplanation,
+  NavExplanation,
+  NavOptions,
+  NavRect,
+  NavVerdict,
+} from './navigation'

@@ -13,6 +13,7 @@ createApp(App)
     createUniIntent({
       adapters: [keyboardAdapter(), mouseAdapter(), gamepadAdapter()],
       wrap: true,
+      debug: true,
     }),
   )
   .mount("#app");

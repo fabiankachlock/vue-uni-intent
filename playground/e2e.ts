@@ -62,7 +62,7 @@ const App = defineComponent({
 });
 
 createApp(App)
-  .use(createUniIntent({ adapters: [keyboardAdapter(), mouseAdapter()] }))
+  .use(createUniIntent({ adapters: [keyboardAdapter(), mouseAdapter()], debug: true }))
   .mount("#app");
 
 const focusedId = () => document.querySelector("[data-uni-focused]")?.id ?? null;
@@ -110,6 +110,37 @@ async function run() {
   await nextTick();
   report("Escape shortcut closes modal", fired.close === 1 && modalOpen.value === false);
   report("focus restored after modal", focusedId() === "open");
+
+  // Debug overlay: hotkey toggles it, targets get boxes, winners get badges,
+  // and the panel explains the decision. Focus sits on "open" (rightmost).
+  const debugHotkey = () =>
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "d",
+        ctrlKey: true,
+        altKey: true,
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+  debugHotkey();
+  report("debug hotkey shows overlay", document.querySelector("[data-uni-debug]") !== null);
+  report(
+    "debug overlay boxes all targets",
+    document.querySelectorAll("[data-uni-debug-box]").length === 3,
+  );
+  report(
+    "debug overlay marks left winner from open",
+    document.querySelector('[data-uni-debug-box="b"] [data-uni-debug-winner="left"]') !== null,
+  );
+  const panel = document.querySelector("[data-uni-debug-panel]");
+  report(
+    "debug panel explains the decision",
+    (panel?.textContent ?? "").includes('origin: "open"') &&
+      (panel?.textContent ?? "").includes("score"),
+  );
+  debugHotkey();
+  report("debug hotkey hides overlay", document.querySelector("[data-uni-debug]") === null);
 
   document.querySelector("#results")!.textContent = results.join("\n");
 }

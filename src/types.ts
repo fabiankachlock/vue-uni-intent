@@ -102,6 +102,14 @@ export type UseTriggerLayerReturn = {
   isActive: ComputedRef<boolean>
 }
 
+export type UniIntentDebugOptions = {
+  /**
+   * Keyboard shortcut that toggles the debug overlay.
+   * Default: `Ctrl+Alt+D` (`key('d', { ctrl: true, alt: true })`).
+   */
+  hotkey?: KeyShortcut
+}
+
 export type UniIntentOptions = {
   /**
    * Input adapters to install. Explicit by design — the core is input-agnostic:
@@ -112,4 +120,10 @@ export type UniIntentOptions = {
   wrap?: boolean
   /** Initial focus strategy for the root layer. Default `"first"`. */
   initialFocus?: 'first' | 'none'
+  /**
+   * Enable the spatial-navigation debug overlay, toggled at runtime by its
+   * hotkey. Off by default; pass `true` (or options) to make it available —
+   * e.g. `debug: import.meta.env.DEV`.
+   */
+  debug?: boolean | UniIntentDebugOptions
 }

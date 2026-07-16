@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { findNext, type NavCandidate } from '../navigation'
+import { explainNext, findNext, type NavCandidate } from '../navigation'
 
 const rect = (x: number, y: number, width = 100, height = 40) => ({ x, y, width, height })
 
@@ -135,5 +135,71 @@ describe('findNext', () => {
       const second: NavCandidate = { id: 'second', rect: rect(200, 200) }
       expect(findNext(from, [first, second], 'right')).toBe('first')
     })
+  })
+})
+
+describe('explainNext', () => {
+  const verdictOf = (explanation: ReturnType<typeof explainNext>, id: string) =>
+    explanation.candidates.find((c) => c.id === id)
+
+  it('agrees with findNext and scores the forward pool', () => {
+    const explanation = explainNext(grid.e!, others('e'), 'right')
+    expect(explanation.target).toBe(findNext(grid.e!, others('e'), 'right'))
+    expect(explanation.mode).toBe('forward')
+
+    const winner = verdictOf(explanation, 'f')!
+    expect(winner.verdict).toBe('winner')
+    // Centers are 120px apart on the row, perfectly aligned.
+    expect(winner.primaryDistance).toBe(120)
+    expect(winner.crossDistance).toBe(0)
+    expect(winner.aligned).toBe(true)
+    expect(winner.inCone).toBe(true)
+    expect(winner.score).toBe(120)
+
+    // Everything left of (or level with) the origin is behind and unscored.
+    expect(verdictOf(explanation, 'd')!.verdict).toBe('behind')
+    expect(verdictOf(explanation, 'b')!.verdict).toBe('behind')
+    expect(verdictOf(explanation, 'd')!.score).toBeUndefined()
+  })
+
+  it('marks ahead-but-off-cone candidates as outside-cone', () => {
+    const a: NavCandidate = { id: 'a', rect: rect(0, 0) }
+    const aligned: NavCandidate = { id: 'aligned', rect: rect(400, 0) }
+    // Closer center distance, but below the 45° cone and not cross-aligned.
+    const unaligned: NavCandidate = { id: 'unaligned', rect: rect(150, 200) }
+    const explanation = explainNext(a, [aligned, unaligned], 'right')
+    expect(explanation.target).toBe('aligned')
+    expect(verdictOf(explanation, 'unaligned')!.verdict).toBe('outside-cone')
+    expect(verdictOf(explanation, 'unaligned')!.score).toBeUndefined()
+  })
+
+  it('scores all ahead candidates when the cone is empty', () => {
+    const a: NavCandidate = { id: 'a', rect: rect(0, 0) }
+    const b: NavCandidate = { id: 'b', rect: rect(200, 300) }
+    const explanation = explainNext(a, [b], 'right')
+    expect(explanation.target).toBe('b')
+    const winner = verdictOf(explanation, 'b')!
+    expect(winner.verdict).toBe('winner')
+    expect(winner.inCone).toBe(false)
+  })
+
+  it('explains wrap decisions', () => {
+    const explanation = explainNext(grid.c!, others('c'), 'right', { wrap: true })
+    expect(explanation.target).toBe('a')
+    expect(explanation.mode).toBe('wrap')
+    // Both same-row candidates compete for the wrap; "a" is nearest the far edge.
+    expect(verdictOf(explanation, 'a')!.verdict).toBe('winner')
+    expect(verdictOf(explanation, 'b')!.verdict).toBe('scored')
+    // Other rows are behind but too far off the cross axis to wrap to.
+    expect(verdictOf(explanation, 'e')!.verdict).toBe('wrap-excluded')
+    // "f" sits at the same primary coordinate — neither ahead nor behind.
+    expect(verdictOf(explanation, 'f')!.verdict).toBe('behind')
+  })
+
+  it('reports mode none when there is no move', () => {
+    const explanation = explainNext(grid.a!, others('a'), 'up')
+    expect(explanation.target).toBeNull()
+    expect(explanation.mode).toBe('none')
+    expect(explanation.candidates.every((c) => c.verdict === 'behind')).toBe(true)
   })
 })

@@ -1,5 +1,6 @@
 import type { Plugin } from 'vue'
 import { createInputContext } from './context'
+import { DebugController } from './debug'
 import { INPUT_CONTEXT_KEY } from './keys'
 import type { UniIntentOptions } from './types'
 
@@ -33,9 +34,16 @@ export function createUniIntent(options: UniIntentOptions): Plugin {
       for (const adapter of adapters) adapter.setup(ctx.adapterContext)
       ctx.focus.attachFocusinSync(window)
 
+      let debug: DebugController | null = null
+      if (options.debug) {
+        debug = new DebugController(ctx, options.debug === true ? {} : options.debug)
+        debug.setup()
+      }
+
       app.onUnmount(() => {
         for (const adapter of adapters) adapter.teardown()
         ctx.focus.detachFocusinSync()
+        debug?.teardown()
       })
     },
   }

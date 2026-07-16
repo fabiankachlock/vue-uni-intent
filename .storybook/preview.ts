@@ -25,6 +25,7 @@ setup((app, context) => {
       adapters: overrides.adapters?.() ?? [keyboardAdapter(), mouseAdapter(), gamepadAdapter()],
       wrap: overrides.wrap ?? true,
       initialFocus: overrides.initialFocus ?? "first",
+      debug: overrides.debug ?? true,
     }),
   );
 });
