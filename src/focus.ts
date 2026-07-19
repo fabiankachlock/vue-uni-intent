@@ -17,7 +17,9 @@ export type FocusManagerOptions = {
 /**
  * Owns the single-focus invariant: which trigger is focused, how focus moves
  * spatially, and how it is mirrored to the DOM (real `element.focus()` for
- * a11y, `data-uni-focused` for styling, roving tabindex for sane Tab order).
+ * a11y, `data-uni-focused` for styling). Every active-layer trigger stays
+ * tabbable (`tabIndex 0`) so native Tab moves between triggers; `focusin`
+ * adopts each landing back into the single-focus state.
  */
 export class FocusManager {
   readonly focusedRecord = shallowRef<TriggerRecord | null>(null)
@@ -141,6 +143,23 @@ export class FocusManager {
   }
 
   /**
+   * Put an element in or out of the native Tab order: tabbable (`0`) while its
+   * trigger is in the active layer and enabled, otherwise `-1`. Every trigger of
+   * the active layer stays tabbable so Tab moves between them (not roving); the
+   * `focusin` listener adopts wherever Tab lands.
+   */
+  applyTabbability(record: TriggerRecord): void {
+    if (!record.element) return
+    record.element.tabIndex =
+      record.layerId === this.activeLayerId() && !record.isDisabled() ? 0 : -1
+  }
+
+  /** Re-apply tabbability to every trigger — used when the active layer changes. */
+  refreshTabbability(): void {
+    for (const record of this.registry.all()) this.applyTabbability(record)
+  }
+
+  /**
    * Give an element real focus, then scroll it into view ourselves. We always
    * focus with `preventScroll` so the browser's minimal "nearest edge" scroll
    * can't tuck the target under a sticky header; the follow-up `scrollIntoView`
@@ -213,7 +232,8 @@ export class FocusManager {
 
     if (prev?.element) {
       prev.element.removeAttribute('data-uni-focused')
-      prev.element.tabIndex = -1
+      // Not focused anymore, but still tabbable if it stays in the active layer.
+      this.applyTabbability(prev)
     }
     if (record?.element) {
       record.element.setAttribute('data-uni-focused', '')

@@ -23,8 +23,10 @@ API and usage examples.
 - **Real DOM focus.** The focused trigger gets a real `element.focus()` (with
   `preventScroll`, then a follow-up `scrollIntoView` the core controls via the `scroll` /
   `scrollMargin` options — `scrollMargin` is written to the element's `scroll-margin` to
-  clear sticky headers) and a roving tabindex (focused = `0`, others = `-1`), so native
-  Tab keeps working. A `data-uni-focused` attribute is set for styling; `data-uni-trigger`
+  clear sticky headers). Every trigger of the **active** layer stays tabbable
+  (`tabIndex = 0`; inactive-layer or disabled triggers are `-1`), so native Tab moves
+  between triggers and a `focusin` listener adopts wherever it lands as the single focus.
+  A `data-uni-focused` attribute is set for styling; `data-uni-trigger`
   marks trigger elements for mouse delegation.
 
 ## Architecture

@@ -71,7 +71,7 @@ export function isManualCause(cause: TriggerCause): cause is ManualTriggerCause 
  * - `'navigate'` — spatial navigation (an adapter's `move`).
  * - `'focus'` — direct focus of a specific trigger (mouse hover/click, an adapter's `focus(id)`).
  * - `'programmatic'` — a consumer-called `useTrigger().focus()`.
- * - `'tab'` — native focus change adopted via `focusin` (e.g. Tab).
+ * - `'tab'` — native focus landing on a trigger, adopted via `focusin` (Tab/Shift+Tab, or a click).
  * - `'restore'` — a layer became active again and its remembered focus was restored.
  * - `'initial'` — a layer/app resolved its initial focus (`initialFocus`, `autofocus`, or first trigger).
  * - `'cleanup'` — the focused trigger was removed and focus fell back to a survivor.

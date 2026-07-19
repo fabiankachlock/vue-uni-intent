@@ -54,6 +54,11 @@ export class TriggerRegistry {
     return this.records.get(recordKey(id, layerId))
   }
 
+  /** Every registered record (any layer), unordered. */
+  all(): TriggerRecord[] {
+    return [...this.records.values()]
+  }
+
   /** Records of one layer, in registration order. */
   inLayer(layerId: string): TriggerRecord[] {
     const result: TriggerRecord[] = []

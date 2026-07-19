@@ -48,19 +48,26 @@ export function useTrigger(options: UseTriggerOptions): UseTriggerReturn {
     (el) => {
       ctx.registry.setElement(record, el)
       if (el) {
-        // Mouse adapters delegate via this attribute; roving tabindex keeps
-        // Tab from visiting every trigger.
+        // Mouse adapters delegate via this attribute.
         el.setAttribute('data-uni-trigger', record.id)
+        // Tabbable while in the active layer and enabled, so native Tab reaches
+        // every trigger; `focusin` adopts wherever it lands.
+        ctx.focus.applyTabbability(record)
         if (ctx.focus.focusedRecord.value === record) {
           // Focus landed on this trigger before its element settled.
           ctx.focus.syncElementFocus(record)
         } else {
-          el.tabIndex = -1
           ctx.focus.scheduleAutoFocus(layerId)
         }
       }
     },
     { flush: 'post' },
+  )
+
+  // Toggling `disabled` adds/removes the trigger from the native Tab order.
+  watch(
+    () => record.isDisabled(),
+    () => ctx.focus.applyTabbability(record),
   )
 
   onScopeDispose(() => {

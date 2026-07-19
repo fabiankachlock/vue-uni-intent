@@ -45,6 +45,8 @@ export class LayerManager {
     }
     this.stack.push(handle)
     this.focus?.applyLayerFocus(handle, { preferMemory: false })
+    // New active layer's triggers become tabbable; the covered layer's leave the Tab order.
+    this.focus?.refreshTabbability()
   }
 
   remove(id: string): void {
@@ -56,6 +58,8 @@ export class LayerManager {
     if (wasActive) {
       this.focus?.applyLayerFocus(this.activeLayer.value, { preferMemory: true })
     }
+    // The newly-uncovered layer's triggers rejoin the Tab order.
+    this.focus?.refreshTabbability()
   }
 }
 

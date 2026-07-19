@@ -6,7 +6,7 @@ A universal intent system for Game-menu style button control for Vue 3: one focu
 - Keyboard, mouse, and gamepad ship as separate adapters that you configure explicitly. The core only knows the `InputAdapter` contract, so input sources can be omitted, replaced, or added.
 - Shortcuts are unified across inputs: `Escape`, gamepad `B`, and the mouse back button can all fire the same trigger as a visible button.
 - Focus layers let a modal confine navigation and shortcuts to its own triggers and restore the previous focus when it closes.
-- Triggers use real `element.focus()` with a roving tabindex, so native Tab navigation keeps working. A `data-uni-focused` attribute is set for styling.
+- Triggers use real `element.focus()`, and every trigger of the active layer stays in the native Tab order, so pressing Tab moves between triggers and any landing is adopted as focus. A `data-uni-focused` attribute is set for styling.
 
 ## Setup
 
@@ -145,7 +145,7 @@ resolves itself carries `source: "core"`, and a programmatic `focus()` carries
 - `"navigate"` — spatial navigation (`direction` is set)
 - `"focus"` — direct focus of a trigger (mouse hover/click)
 - `"programmatic"` — a `useTrigger().focus()` call
-- `"tab"` — native Tab adopted via `focusin`
+- `"tab"` — native focus landing on a trigger, adopted via `focusin` (Tab/Shift+Tab, or a click)
 - `"restore"` — a layer became active again and its remembered focus returned
 - `"initial"` — a layer/app resolved its initial focus
 - `"cleanup"` — the focused trigger was removed and focus fell back to a survivor

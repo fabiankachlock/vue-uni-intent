@@ -75,8 +75,10 @@ describe('FocusManager', () => {
 
     focus.focus(b)
     expect(a.element!.hasAttribute('data-uni-focused')).toBe(false)
-    expect(a.element!.tabIndex).toBe(-1)
+    // a stays tabbable: it is still in the active layer and enabled (not roving).
+    expect(a.element!.tabIndex).toBe(0)
     expect(b.element!.hasAttribute('data-uni-focused')).toBe(true)
+    expect(b.element!.tabIndex).toBe(0)
 
     const cause = { source: 'test', via: 'activate' } as const
     focus.activate(cause)
@@ -140,6 +142,47 @@ describe('FocusManager', () => {
 
     focus.detachFocusinSync()
   })
+
+  it('keeps every active-layer trigger tabbable', () => {
+    const a = makeTrigger({ id: 'a' })
+    const b = makeTrigger({ id: 'b', x: 200 })
+    focus.refreshTabbability()
+
+    // Both are in the Tab order before anything is focused.
+    expect(a.element!.tabIndex).toBe(0)
+    expect(b.element!.tabIndex).toBe(0)
+
+    focus.focus(a)
+    focus.focus(b)
+    // Focus moved, but neither leaves the Tab order.
+    expect(a.element!.tabIndex).toBe(0)
+    expect(b.element!.tabIndex).toBe(0)
+    expect(a.element!.hasAttribute('data-uni-focused')).toBe(false)
+    expect(b.element!.hasAttribute('data-uni-focused')).toBe(true)
+  })
+
+  it('drops disabled triggers out of the Tab order', () => {
+    let disabled = false
+    const element = document.createElement('button')
+    document.body.appendChild(element)
+    const record = registry.register({
+      id: 'a',
+      layerId: ROOT_LAYER_ID,
+      element: null,
+      isDisabled: () => disabled,
+      shortcuts: [],
+      autofocus: false,
+      onTrigger: vi.fn<(cause: TriggerCause) => void>(),
+    })
+    registry.setElement(record, element)
+
+    focus.applyTabbability(record)
+    expect(element.tabIndex).toBe(0)
+
+    disabled = true
+    focus.applyTabbability(record)
+    expect(element.tabIndex).toBe(-1)
+  })
 })
 
 describe('LayerManager', () => {
@@ -167,6 +210,22 @@ describe('LayerManager', () => {
     layers.remove('modal')
     expect(focus.focusedRecord.value).toBe(rootB)
     expect(rootA.element!.hasAttribute('data-uni-focused')).toBe(false)
+  })
+
+  it('gates the Tab order to the active layer', () => {
+    const rootA = makeTrigger({ id: 'a' })
+    focus.refreshTabbability()
+    expect(rootA.element!.tabIndex).toBe(0)
+
+    // Pushing a modal takes the root trigger out of the Tab order.
+    const modalA = makeTrigger({ id: 'a', layerId: 'modal', y: 500 })
+    layers.push({ id: 'modal', focusMemory: null })
+    expect(rootA.element!.tabIndex).toBe(-1)
+    expect(modalA.element!.tabIndex).toBe(0)
+
+    // Closing it returns the root trigger to the Tab order.
+    layers.remove('modal')
+    expect(rootA.element!.tabIndex).toBe(0)
   })
 
   it('respects initialFocus and autofocus when a layer activates', () => {

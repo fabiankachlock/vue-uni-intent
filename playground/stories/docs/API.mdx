@@ -122,7 +122,7 @@ It fires on **every** focus change and describes how focus was gained:
 | `"navigate"`    | Spatial navigation (an adapter's `move`); `direction` is set.           |
 | `"focus"`       | Direct focus of a trigger (mouse hover/click, an adapter's `focus(id)`).|
 | `"programmatic"`| A consumer-called `useTrigger().focus()`.                               |
-| `"tab"`         | Native focus change adopted via `focusin` (e.g. Tab).                   |
+| `"tab"`         | Native focus landing on a trigger, adopted via `focusin` (Tab/Shift+Tab, or a click). |
 | `"restore"`     | A layer became active again and its remembered focus was restored.      |
 | `"initial"`     | A layer/app resolved its initial focus.                                 |
 | `"cleanup"`     | The focused trigger was removed and focus fell back to a survivor.      |

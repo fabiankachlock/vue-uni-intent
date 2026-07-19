@@ -17,9 +17,10 @@ navigable with keyboard, mouse, and gamepad through a single API.
   all fire the same trigger, regardless of what is focused.
 - **Focus layers.** A modal can confine navigation and shortcuts to its own
   triggers, then restore the previous focus when it closes.
-- **Real, accessible focus.** Triggers use `element.focus()` with a roving
-  tabindex, so native <kbd>Tab</kbd> keeps working. A `data-uni-focused`
-  attribute is exposed for styling.
+- **Real, accessible focus.** Triggers use `element.focus()`, and every trigger of
+  the active layer stays in the native Tab order, so <kbd>Tab</kbd> moves between
+  triggers and each landing is adopted as focus. A `data-uni-focused` attribute is
+  exposed for styling.
 
 ## Explore the docs
 
