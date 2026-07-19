@@ -42,6 +42,12 @@ export type GamepadAdapterOptions = {
   repeatInterval?: number
   /** Button that activates the focused trigger. Default `"A"`. */
   activateButton?: GamepadButtonRef
+  /** Scroll the window with the right stick while held. Default `false`. */
+  rightStickScroll?: boolean
+  /** Right-stick scroll speed in px/sec at full deflection. Default `1200`. */
+  scrollSpeed?: number
+  /** Invert the right stick's vertical scroll (stick down scrolls up). Default `false`. */
+  invertScrollY?: boolean
 }
 
 type ResolvedGamepadOptions = {
@@ -49,6 +55,9 @@ type ResolvedGamepadOptions = {
   initialRepeatDelay: number
   repeatInterval: number
   activateButton: number
+  rightStickScroll: boolean
+  scrollSpeed: number
+  invertScrollY: boolean
 }
 
 /** Mutable per-frame state of the poll loop. Exported for testing. */
@@ -59,10 +68,18 @@ export type GamepadPollState = {
   /** Timestamp the held direction was first seen. */
   directionSince: number
   lastMoveAt: number
+  /** Timestamp of the previous scroll frame, for frame-rate-independent velocity. */
+  lastScrollAt: number
 }
 
 export function createGamepadPollState(): GamepadPollState {
-  return { buttonsDown: new Set(), heldDirection: null, directionSince: 0, lastMoveAt: 0 }
+  return {
+    buttonsDown: new Set(),
+    heldDirection: null,
+    directionSince: 0,
+    lastMoveAt: 0,
+    lastScrollAt: -1,
+  }
 }
 
 const DPAD_DIRECTIONS: [number, Direction][] = [
@@ -82,6 +99,45 @@ function resolveDirection(pad: Gamepad, deadzone: number): Direction | null {
   // Dominant axis wins so diagonals resolve deterministically.
   if (Math.abs(x) >= Math.abs(y)) return x > 0 ? 'right' : 'left'
   return y > 0 ? 'down' : 'up'
+}
+
+/** Right-stick deflection past the deadzone (first pad wins), else `null`. */
+function resolveScroll(
+  pads: readonly (Gamepad | null)[],
+  deadzone: number,
+): { x: number; y: number } | null {
+  for (const pad of pads) {
+    if (!pad) continue
+    const x = pad.axes[GamepadAxis.RightX] ?? 0
+    const y = pad.axes[GamepadAxis.RightY] ?? 0
+    if (Math.abs(x) >= deadzone || Math.abs(y) >= deadzone) return { x, y }
+  }
+  return null
+}
+
+/** Whether `el` can actually scroll along the given axis (overflow + overflowing content). */
+function canScroll(el: Element, axis: 'x' | 'y'): boolean {
+  const style = getComputedStyle(el)
+  const overflow = axis === 'x' ? style.overflowX : style.overflowY
+  if (overflow !== 'auto' && overflow !== 'scroll' && overflow !== 'overlay') return false
+  return axis === 'x' ? el.scrollWidth > el.clientWidth : el.scrollHeight > el.clientHeight
+}
+
+/**
+ * Scroll the nearest scrollable ancestor of the focused trigger by `(dx, dy)`,
+ * falling back to the window. Runs the whole chain in the axes actually being
+ * pushed so a vertical-only container isn't chosen for a horizontal push.
+ */
+function scrollFocusedContainer(dx: number, dy: number): void {
+  let el: Element | null = document.querySelector('[data-uni-focused]')
+  while (el) {
+    if ((dx !== 0 && canScroll(el, 'x')) || (dy !== 0 && canScroll(el, 'y'))) {
+      el.scrollBy(dx, dy)
+      return
+    }
+    el = el.parentElement
+  }
+  window.scrollBy(dx, dy)
 }
 
 /**
@@ -126,6 +182,21 @@ export function pollGamepads(
   }
   state.buttonsDown = pressed
 
+  // Right-stick scrolling (opt-in): a direct DOM side-effect on the focused
+  // item's nearest scrollable container (window fallback), independent of the
+  // navigation state machine below. Distance scales with the frame delta so
+  // velocity is frame-rate independent.
+  if (options.rightStickScroll) {
+    const dt = state.lastScrollAt < 0 ? 0 : now - state.lastScrollAt
+    state.lastScrollAt = now
+    const scroll = resolveScroll(pads, options.deadzone)
+    if (scroll && dt > 0 && typeof document !== 'undefined') {
+      const distance = (options.scrollSpeed * dt) / 1000
+      const dy = options.invertScrollY ? -scroll.y : scroll.y
+      scrollFocusedContainer(scroll.x * distance, dy * distance)
+    }
+  }
+
   // Direction state machine: immediate move on press/change, stepwise repeat
   // while held (initial delay, then interval).
   if (direction === null) {
@@ -159,7 +230,9 @@ export function pollGamepads(
 /**
  * Gamepad input (standard mapping): D-pad and left stick navigate, `A`
  * activates, every other button press is dispatched as a `GamepadShortcut`.
- * Polls via requestAnimationFrame while at least one pad is connected.
+ * With `rightStickScroll`, the right stick scrolls the focused item's nearest
+ * scrollable container (window fallback). Polls via requestAnimationFrame while
+ * at least one pad is connected.
  */
 export function gamepadAdapter(options: GamepadAdapterOptions = {}): InputAdapter {
   const resolved: ResolvedGamepadOptions = {
@@ -167,6 +240,9 @@ export function gamepadAdapter(options: GamepadAdapterOptions = {}): InputAdapte
     initialRepeatDelay: options.initialRepeatDelay ?? 400,
     repeatInterval: options.repeatInterval ?? 150,
     activateButton: resolveGamepadButton(options.activateButton ?? 'A'),
+    rightStickScroll: options.rightStickScroll ?? false,
+    scrollSpeed: options.scrollSpeed ?? 1200,
+    invertScrollY: options.invertScrollY ?? false,
   }
 
   let context: AdapterContext | null = null

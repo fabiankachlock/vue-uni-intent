@@ -176,8 +176,11 @@ Availability reflects real device capability, reported by the installed adapters
 - **`mouseAdapter()`** — hover to focus, left-click to activate; non-left
   buttons dispatch shortcuts.
 - **`gamepadAdapter(options?)`** — `deadzone`, `initialRepeatDelay`,
-  `repeatInterval`. Also exports `pollGamepads`, `createGamepadPollState` for
-  custom polling loops.
+  `repeatInterval`, `activateButton`. Opt-in right-stick scrolling via
+  `rightStickScroll` (default `false`) scrolls the focused item's nearest
+  scrollable container (horizontally and vertically, window fallback), tuned with
+  `scrollSpeed` (px/sec, default `1200`) and `invertScrollY`. Also exports
+  `pollGamepads`, `createGamepadPollState` for custom polling loops.
 
 Adapters fire triggers via `ctx.activate(cause)` and
 `ctx.dispatchShortcut(input, cause)`, passing a [`TriggerCause`](#trigger-cause).

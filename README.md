@@ -35,7 +35,13 @@ createApp(App)
           },
         }),
         mouseAdapter(),
-        gamepadAdapter({ deadzone: 0.5, initialRepeatDelay: 400, repeatInterval: 150 }),
+        gamepadAdapter({
+          deadzone: 0.5,
+          initialRepeatDelay: 400,
+          repeatInterval: 150,
+          rightStickScroll: true, // right stick scrolls the focused item's scroll container (default off)
+          scrollSpeed: 1200, // px/sec at full deflection; invertScrollY to flip Y
+        }),
       ],
       wrap: false, // wrap-around navigation at the edges
       initialFocus: "first", // or "none"

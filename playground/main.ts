@@ -11,7 +11,11 @@ import "./theme.css";
 createApp(App)
   .use(
     createUniIntent({
-      adapters: [keyboardAdapter(), mouseAdapter(), gamepadAdapter()],
+      adapters: [
+        keyboardAdapter(),
+        mouseAdapter(),
+        gamepadAdapter({ rightStickScroll: true }),
+      ],
       wrap: true,
       debug: true,
     }),

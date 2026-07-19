@@ -8,6 +8,23 @@ export const DEFAULT_DEBUG_HOTKEY: KeyShortcut = { key: 'd', ctrl: true, alt: tr
 
 const DIRECTIONS: Direction[] = ['up', 'down', 'left', 'right']
 
+/** Which screen corner the panel is pinned to. */
+type Corner = 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'
+
+const CORNER_POSITION: Record<Corner, string> = {
+  'bottom-left': 'left:8px;bottom:8px',
+  'bottom-right': 'right:8px;bottom:8px',
+  'top-left': 'left:8px;top:8px',
+  'top-right': 'right:8px;top:8px',
+}
+
+const CORNER_CONTROLS: { corner: Corner; glyph: string; label: string }[] = [
+  { corner: 'top-left', glyph: '◤', label: 'top left' },
+  { corner: 'top-right', glyph: '◥', label: 'top right' },
+  { corner: 'bottom-left', glyph: '◣', label: 'bottom left' },
+  { corner: 'bottom-right', glyph: '◢', label: 'bottom right' },
+]
+
 const DIRECTION_META: Record<Direction, { arrow: string; color: string; word: string }> = {
   up: { arrow: '↑', color: '#60a5fa', word: 'above' },
   down: { arrow: '↓', color: '#4ade80', word: 'below' },
@@ -19,6 +36,8 @@ const DIRECTION_META: Record<Direction, { arrow: string; color: string; word: st
 type DebugModel = {
   layerId: string
   wrap: boolean
+  /** Which corner the panel is pinned to (part of the signature so a move redraws). */
+  corner: Corner
   /** Boxed targets: visible triggers of the active layer (including disabled ones). */
   boxes: DebugBox[]
   /** Registered but not drawable: element-less shortcut triggers or zero-size rects. */
@@ -128,6 +147,7 @@ export class DebugController {
   private rafId = 0
   private timerId: ReturnType<typeof setInterval> | null = null
   private signature: string | null = null
+  private corner: Corner = 'bottom-left'
 
   constructor(
     private ctx: InputContext,
@@ -160,6 +180,7 @@ export class DebugController {
     root.style.cssText =
       'position:fixed;inset:0;z-index:2147483647;pointer-events:none;' +
       'font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:#e2e8f0;'
+    root.addEventListener('click', this.onClick)
     document.body.appendChild(root)
     this.root = root
     this.signature = null
@@ -204,6 +225,17 @@ export class DebugController {
   private tick = (): void => {
     this.render()
     this.rafId = requestAnimationFrame(this.tick)
+  }
+
+  private onClick = (event: MouseEvent): void => {
+    const target = (event.target as HTMLElement | null)?.closest<HTMLElement>(
+      '[data-uni-debug-move]',
+    )
+    if (!target) return
+    const corner = target.getAttribute('data-uni-debug-move') as Corner
+    if (corner === this.corner) return
+    this.corner = corner
+    this.render()
   }
 
   private render(): void {
@@ -289,6 +321,7 @@ export class DebugController {
     return {
       layerId: layer.id,
       wrap,
+      corner: this.corner,
       boxes,
       hidden,
       originId: origin?.id ?? null,
@@ -382,7 +415,10 @@ export class DebugController {
     const header =
       `<div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:6px">` +
       `<span style="font-weight:700">vue-uni-intent</span>` +
-      `<span style="opacity:.6;white-space:nowrap">${hotkeyLabel(this.hotkey)} to close</span></div>` +
+      `<span style="display:inline-flex;align-items:center;gap:8px">` +
+      this.renderCornerControls() +
+      `<span style="opacity:.6;white-space:nowrap">${hotkeyLabel(this.hotkey)} to close</span>` +
+      `</span></div>` +
       `<div style="opacity:.7;margin-bottom:8px">${stats.join(' | ')}</div>`
 
     let body: string
@@ -401,12 +437,28 @@ export class DebugController {
     }
 
     return (
-      `<div data-uni-debug-panel style="position:fixed;left:8px;bottom:8px;` +
+      `<div data-uni-debug-panel style="position:fixed;${CORNER_POSITION[this.corner]};` +
       `width:min(360px,calc(100vw - 16px));max-height:min(70vh,520px);display:flex;flex-direction:column;` +
       `pointer-events:auto;padding:10px 12px;border-radius:8px;` +
       `background:rgba(2,6,23,.94);box-shadow:0 4px 24px rgba(0,0,0,.45);` +
       `border:1px solid rgba(148,163,184,.2)">${header}${body}</div>`
     )
+  }
+
+  /** Corner-pin buttons in the header — click one to move the panel out of the way. */
+  private renderCornerControls(): string {
+    const buttons = CORNER_CONTROLS.map(({ corner, glyph, label }) => {
+      const active = corner === this.corner
+      const style =
+        `all:unset;cursor:pointer;padding:1px 3px;border-radius:2px;font-size:11px;line-height:1;` +
+        (active ? 'background:#e2e8f0;color:#0b1020;' : 'color:#94a3b8;')
+      return (
+        `<button type="button" data-uni-debug-move="${corner}" ` +
+        `title="Move panel to ${label}" aria-label="Move panel to ${label}" ` +
+        `aria-pressed="${active}" style="${style}">${glyph}</button>`
+      )
+    }).join('')
+    return `<span style="display:inline-flex;gap:2px">${buttons}</span>`
   }
 
   /**

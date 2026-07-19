@@ -14,6 +14,11 @@ const cells = Array.from({ length: 12 }, (_, i) => ({
   label: `Button ${i + 1}`,
   disabled: i === 5,
 }));
+
+const rows = Array.from({ length: 24 }, (_, i) => ({
+  id: `row-${i + 1}`,
+  label: `Row ${i + 1}`,
+}));
 </script>
 
 <template>
@@ -39,6 +44,17 @@ const cells = Array.from({ length: 12 }, (_, i) => ({
 
     <div class="row">
       <DemoButton id="open-settings" label="Open settings…" @trigger="modalOpen = true" />
+    </div>
+
+    <p class="help">Right stick scrolls the list below (the focused item's scroll container).</p>
+    <div class="scroller">
+      <DemoButton
+        v-for="row in rows"
+        :id="row.id"
+        :key="row.id"
+        :label="row.label"
+        @trigger="say(`${row.label} triggered`)"
+      />
     </div>
 
     <ConfirmModal
@@ -84,6 +100,18 @@ h1 {
 .row {
   display: flex;
   justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.scroller {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  height: 12rem;
+  overflow-y: auto;
+  padding: 0.5rem;
+  border: 1px solid var(--muted);
+  border-radius: 0.5rem;
   margin-bottom: 2rem;
 }
 </style>

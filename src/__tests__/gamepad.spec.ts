@@ -14,11 +14,12 @@ const navCause = (direction: Direction) => ({ source: 'gamepad', via: 'navigate'
 
 type FakePad = {
   buttons?: number[]
-  axes?: [number, number]
+  /** `[leftX, leftY, rightX, rightY]` — trailing entries default to `0`. */
+  axes?: number[]
 }
 
 /** Build a Gamepad-shaped object with the given pressed button indices. */
-function pad({ buttons = [], axes = [0, 0] }: FakePad = {}): Gamepad {
+function pad({ buttons = [], axes = [0, 0, 0, 0] }: FakePad = {}): Gamepad {
   const buttonList = Array.from({ length: 17 }, (_, i) => ({
     pressed: buttons.includes(i),
     touched: false,
@@ -32,6 +33,9 @@ const OPTIONS = {
   initialRepeatDelay: 400,
   repeatInterval: 150,
   activateButton: GamepadButton.A,
+  rightStickScroll: false,
+  scrollSpeed: 1200,
+  invertScrollY: false,
 }
 
 let ctx: {
@@ -140,6 +144,109 @@ describe('pollGamepads', () => {
   it('handles null pad slots and multiple pads', () => {
     poll([null, pad({ buttons: [GamepadButton.A] }), null], 0)
     expect(ctx.activate).toHaveBeenCalledOnce()
+  })
+})
+
+describe('pollGamepads right-stick scroll', () => {
+  const SCROLL_OPTIONS = { ...OPTIONS, rightStickScroll: true }
+  let scrollBy: Mock
+
+  const scroll = (
+    pads: (Gamepad | null)[],
+    now: number,
+    options: typeof OPTIONS = SCROLL_OPTIONS,
+  ) => pollGamepads(pads, state, now, ctx as unknown as AdapterContext, options)
+
+  /** A focused item nested in a container scrollable on the given axis. */
+  const scrollableContainer = (axis: 'x' | 'y') => {
+    const container = document.createElement('div')
+    container.style[axis === 'x' ? 'overflowX' : 'overflowY'] = 'auto'
+    const size = axis === 'x' ? 'scrollWidth' : 'scrollHeight'
+    const client = axis === 'x' ? 'clientWidth' : 'clientHeight'
+    Object.defineProperty(container, size, { value: 500, configurable: true })
+    Object.defineProperty(container, client, { value: 100, configurable: true })
+    container.scrollBy = vi.fn<
+      (x: number, y: number) => void
+    >() as unknown as typeof container.scrollBy
+    const item = document.createElement('button')
+    item.setAttribute('data-uni-focused', '')
+    container.append(item)
+    document.body.append(container)
+    return container
+  }
+
+  beforeEach(() => {
+    scrollBy = vi.fn<(x: number, y: number) => void>()
+    vi.spyOn(window, 'scrollBy').mockImplementation(scrollBy)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    document.body.innerHTML = ''
+  })
+
+  it('scrolls the window by scrollSpeed * dt / 1000 when past the deadzone', () => {
+    scroll([pad({ axes: [0, 0, 1, 0.5] })], 0) // first frame establishes the clock
+    expect(scrollBy).not.toHaveBeenCalled()
+
+    scroll([pad({ axes: [0, 0, 1, 0.5] })], 100) // dt = 100ms → distance = 120px
+    expect(scrollBy).toHaveBeenCalledWith(120, 60)
+  })
+
+  it('does not scroll when rightStickScroll is off (default)', () => {
+    scroll([pad({ axes: [0, 0, 1, 1] })], 0, OPTIONS)
+    scroll([pad({ axes: [0, 0, 1, 1] })], 100, OPTIONS)
+    expect(scrollBy).not.toHaveBeenCalled()
+  })
+
+  it('ignores right-stick input inside the deadzone', () => {
+    scroll([pad({ axes: [0, 0, 0.3, 0.2] })], 0)
+    scroll([pad({ axes: [0, 0, 0.3, 0.2] })], 100)
+    expect(scrollBy).not.toHaveBeenCalled()
+  })
+
+  it('is frame-rate independent — doubling dt doubles the distance', () => {
+    scroll([pad({ axes: [0, 0, 1, 0] })], 0)
+    scroll([pad({ axes: [0, 0, 1, 0] })], 200) // dt = 200ms → distance = 240px
+    expect(scrollBy).toHaveBeenLastCalledWith(240, 0)
+  })
+
+  it('inverts the vertical scroll when invertScrollY is set', () => {
+    const inverted = { ...SCROLL_OPTIONS, invertScrollY: true }
+    scroll([pad({ axes: [0, 0, 0, 1] })], 0, inverted)
+    scroll([pad({ axes: [0, 0, 0, 1] })], 100, inverted)
+    expect(scrollBy).toHaveBeenCalledWith(0, -120)
+  })
+
+  it('does not scroll on the first frame (dt = 0)', () => {
+    scroll([pad({ axes: [0, 0, 1, 1] })], 500)
+    expect(scrollBy).not.toHaveBeenCalled()
+  })
+
+  it("scrolls the focused item's nearest scrollable ancestor, not the window", () => {
+    const container = scrollableContainer('y')
+    scroll([pad({ axes: [0, 0, 0, 1] })], 0)
+    scroll([pad({ axes: [0, 0, 0, 1] })], 100)
+    expect(container.scrollBy).toHaveBeenCalledWith(0, 120)
+    expect(scrollBy).not.toHaveBeenCalled()
+  })
+
+  it('scrolls a horizontally scrollable container with the right stick X axis', () => {
+    const container = scrollableContainer('x')
+    scroll([pad({ axes: [0, 0, 1, 0] })], 0)
+    scroll([pad({ axes: [0, 0, 1, 0] })], 100)
+    expect(container.scrollBy).toHaveBeenCalledWith(120, 0)
+  })
+
+  it('falls back to the window when no ancestor is scrollable', () => {
+    const container = document.createElement('div') // no overflow, not scrollable
+    const item = document.createElement('button')
+    item.setAttribute('data-uni-focused', '')
+    container.append(item)
+    document.body.append(container)
+    scroll([pad({ axes: [0, 0, 0, 1] })], 0)
+    scroll([pad({ axes: [0, 0, 0, 1] })], 100)
+    expect(scrollBy).toHaveBeenCalledWith(0, 120)
   })
 })
 
