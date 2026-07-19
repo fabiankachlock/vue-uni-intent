@@ -1,5 +1,5 @@
 import { GamepadAxis, GamepadButton, resolveGamepadButton, type GamepadButtonRef } from '../helpers'
-import type { Direction, TriggerCause } from '../types'
+import type { Direction, FocusCause, TriggerCause } from '../types'
 import type { AdapterContext, InputAdapter } from './types'
 
 /**
@@ -15,6 +15,21 @@ export type GamepadTriggerCause = {
 
 /** Narrow a `TriggerCause` to the gamepad adapter's fully-typed shape. */
 export function isGamepadCause(cause: TriggerCause): cause is GamepadTriggerCause {
+  return cause.source === 'gamepad'
+}
+
+/**
+ * `FocusCause` shape produced by the gamepad adapter (D-pad / stick navigation).
+ * There is no native event — input is polled.
+ */
+export type GamepadFocusCause = {
+  source: 'gamepad'
+  via: 'navigate'
+  direction: Direction
+}
+
+/** Narrow a `FocusCause` to the gamepad adapter's fully-typed shape. */
+export function isGamepadFocusCause(cause: FocusCause): cause is GamepadFocusCause {
   return cause.source === 'gamepad'
 }
 
@@ -121,7 +136,11 @@ export function pollGamepads(
     state.heldDirection = direction
     state.directionSince = now
     state.lastMoveAt = now
-    ctx.move(direction)
+    ctx.move(direction, {
+      source: 'gamepad',
+      via: 'navigate',
+      direction,
+    } satisfies GamepadFocusCause)
     return
   }
   if (
@@ -129,7 +148,11 @@ export function pollGamepads(
     now - state.lastMoveAt >= options.repeatInterval
   ) {
     state.lastMoveAt = now
-    ctx.move(direction)
+    ctx.move(direction, {
+      source: 'gamepad',
+      via: 'navigate',
+      direction,
+    } satisfies GamepadFocusCause)
   }
 }
 

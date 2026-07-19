@@ -1,7 +1,12 @@
 import { computed, getCurrentInstance, inject, onScopeDispose, ref, toValue, watch } from 'vue'
 import { INPUT_CONTEXT_KEY, LAYER_ID_KEY } from './keys'
 import { ROOT_LAYER_ID } from './layers'
-import type { ManualTriggerCause, UseTriggerOptions, UseTriggerReturn } from './types'
+import type {
+  ManualFocusCause,
+  ManualTriggerCause,
+  UseTriggerOptions,
+  UseTriggerReturn,
+} from './types'
 
 /**
  * Register a controllable trigger. Bind the returned `ref` to an element to
@@ -35,6 +40,7 @@ export function useTrigger(options: UseTriggerOptions): UseTriggerReturn {
     shortcuts: options.shortcuts ?? [],
     autofocus: options.autofocus ?? false,
     onTrigger: options.onTrigger,
+    onFocus: options.onFocus,
   })
 
   watch(
@@ -65,7 +71,8 @@ export function useTrigger(options: UseTriggerOptions): UseTriggerReturn {
   return {
     ref: elementRef,
     focused: computed(() => ctx.focus.focusedRecord.value === record),
-    focus: () => ctx.focus.focus(record),
+    focus: () =>
+      ctx.focus.focus(record, { source: 'manual', via: 'programmatic' } satisfies ManualFocusCause),
     trigger: () =>
       record.onTrigger({ source: 'manual', via: 'manual' } satisfies ManualTriggerCause),
   }

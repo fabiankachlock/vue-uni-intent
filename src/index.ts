@@ -5,18 +5,28 @@ export { useTriggerLayer, ROOT_LAYER_ID } from './layers'
 export {
   keyboardAdapter,
   isKeyboardCause,
+  isKeyboardFocusCause,
   type KeyboardAdapterOptions,
   type KeyboardTriggerCause,
+  type KeyboardFocusCause,
 } from './adapters/keyboard'
-export { mouseAdapter, isMouseCause, type MouseTriggerCause } from './adapters/mouse'
+export {
+  mouseAdapter,
+  isMouseCause,
+  isMouseFocusCause,
+  type MouseTriggerCause,
+  type MouseFocusCause,
+} from './adapters/mouse'
 export {
   gamepadAdapter,
   isGamepadCause,
+  isGamepadFocusCause,
   pollGamepads,
   createGamepadPollState,
   type GamepadAdapterOptions,
   type GamepadPollState,
   type GamepadTriggerCause,
+  type GamepadFocusCause,
 } from './adapters/gamepad'
 
 export { findNext, explainNext } from './navigation'
@@ -38,13 +48,17 @@ export {
   type MouseButtonRef,
 } from './helpers'
 
-export { isManualCause } from './types'
+export { isManualCause, isManualFocusCause, isCoreFocusCause } from './types'
 export type {
   UniIntentOptions,
   UniIntentDebugOptions,
   Direction,
+  FocusCause,
+  FocusVia,
+  CoreFocusCause,
   GamepadShortcut,
   KeyShortcut,
+  ManualFocusCause,
   ManualTriggerCause,
   Modifiers,
   MouseShortcut,

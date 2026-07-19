@@ -1,4 +1,4 @@
-import type { Direction, TriggerCause } from '../types'
+import type { Direction, FocusCause, TriggerCause } from '../types'
 import type { AdapterContext, InputAdapter } from './types'
 
 /** `TriggerCause` shape produced by the keyboard adapter. */
@@ -11,6 +11,20 @@ export type KeyboardTriggerCause = {
 
 /** Narrow a `TriggerCause` to the keyboard adapter's fully-typed shape. */
 export function isKeyboardCause(cause: TriggerCause): cause is KeyboardTriggerCause {
+  return cause.source === 'keyboard'
+}
+
+/** `FocusCause` shape produced by the keyboard adapter (spatial navigation only). */
+export type KeyboardFocusCause = {
+  source: 'keyboard'
+  via: 'navigate'
+  direction: Direction
+  /** The `keydown` event that moved focus. */
+  event: KeyboardEvent
+}
+
+/** Narrow a `FocusCause` to the keyboard adapter's fully-typed shape. */
+export function isKeyboardFocusCause(cause: FocusCause): cause is KeyboardFocusCause {
   return cause.source === 'keyboard'
 }
 
@@ -89,7 +103,12 @@ export function keyboardAdapter(options: KeyboardAdapterOptions = {}): InputAdap
     const direction = directions.find(([, list]) => list.includes(event.key))?.[0]
     if (direction) {
       event.preventDefault()
-      ctx.move(direction)
+      ctx.move(direction, {
+        source: 'keyboard',
+        via: 'navigate',
+        direction,
+        event,
+      } satisfies KeyboardFocusCause)
       return
     }
 

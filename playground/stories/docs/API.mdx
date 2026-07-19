@@ -26,6 +26,7 @@ Registers a controllable trigger.
 | ----------- | ----------------------------- | --------------------------------------------------------------- |
 | `id`        | `string`                      | Unique within its layer.                                        |
 | `onTrigger` | `(cause: TriggerCause) => void` | Called on activation or a matching shortcut; receives what fired it (see [Trigger cause](#trigger-cause)). |
+| `onFocus`   | `(cause: FocusCause) => void` | Optional. Called whenever this trigger gains focus; receives what caused it (see [Focus cause](#focus-cause)). |
 | `shortcuts` | `ShortcutDescriptor[]`        | Inputs that fire this trigger regardless of focus.              |
 | `disabled`  | `MaybeRefOrGetter<boolean>`   | Disabled triggers are skipped by navigation and shortcuts.      |
 | `autofocus` | `boolean`                     | Receive the layer's initial focus.                              |
@@ -61,6 +62,41 @@ Built-in adapters export a precise cause type and a guard that narrows to it:
 | `isGamepadCause`  | `GamepadTriggerCause` | `button: number` (no native event) |
 | `isManualCause`   | `ManualTriggerCause`  | —                                  |
 
+## Focus cause
+
+`onFocus` receives a `FocusCause`, the focus-side counterpart of `TriggerCause`.
+It fires on **every** focus change and describes how focus was gained:
+
+| Field       | Type                    | Description                                                            |
+| ----------- | ----------------------- | --------------------------------------------------------------------- |
+| `source`    | `string`                | The adapter's `name`, `"manual"` for a `focus()` call, or `"core"`.   |
+| `via`       | `FocusVia`              | How focus was gained (see below).                                     |
+| `direction` | `Direction \| undefined`| Set when `via` is `"navigate"`.                                       |
+| `event`     | `Event \| undefined`    | The native DOM event behind the input, when the source has one.       |
+| …           | `unknown`               | Adapter-specific detail.                                              |
+
+`via` is one of:
+
+| `via`           | When                                                                    |
+| --------------- | ----------------------------------------------------------------------- |
+| `"navigate"`    | Spatial navigation (an adapter's `move`); `direction` is set.           |
+| `"focus"`       | Direct focus of a trigger (mouse hover/click, an adapter's `focus(id)`).|
+| `"programmatic"`| A consumer-called `useTrigger().focus()`.                               |
+| `"tab"`         | Native focus change adopted via `focusin` (e.g. Tab).                   |
+| `"restore"`     | A layer became active again and its remembered focus was restored.      |
+| `"initial"`     | A layer/app resolved its initial focus.                                 |
+| `"cleanup"`     | The focused trigger was removed and focus fell back to a survivor.      |
+
+Built-in adapters export a precise cause type and a guard:
+
+| Guard                  | Narrows to          | Extra fields                              |
+| ---------------------- | ------------------- | ----------------------------------------- |
+| `isKeyboardFocusCause` | `KeyboardFocusCause`| `via: "navigate"`, `direction`, `event: KeyboardEvent` |
+| `isMouseFocusCause`    | `MouseFocusCause`   | `via: "focus"`, `event: MouseEvent`       |
+| `isGamepadFocusCause`  | `GamepadFocusCause` | `via: "navigate"`, `direction` (no native event) |
+| `isManualFocusCause`   | `ManualFocusCause`  | `via: "programmatic"`                     |
+| `isCoreFocusCause`     | `CoreFocusCause`    | core-resolved focus (`tab` / `restore` / `initial` / `cleanup`) |
+
 ## `useTriggerLayer(options?)`
 
 Scopes descendant triggers to a new focus layer for the component's lifetime.
@@ -84,6 +120,9 @@ Scopes descendant triggers to a new focus layer for the component's lifetime.
 
 Adapters fire triggers via `ctx.activate(cause)` and
 `ctx.dispatchShortcut(input, cause)`, passing a [`TriggerCause`](#trigger-cause).
+They move focus via `ctx.move(direction, cause)` and `ctx.focus(id, cause)`,
+passing an optional [`FocusCause`](#focus-cause) that reaches the newly focused
+trigger's `onFocus`.
 
 ## Shortcut helpers
 

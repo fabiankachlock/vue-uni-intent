@@ -332,6 +332,140 @@ describe('useTrigger', () => {
     expect(onB).toHaveBeenCalledOnce()
   })
 
+  it('calls onFocus with the initial-focus cause on mount', async () => {
+    const onFocusA = vi.fn<() => void>()
+    wrapper = mountWithPlugin(
+      defineComponent({
+        setup: () => () => [
+          h(TriggerButton, { options: { id: 'a', onTrigger: () => {}, onFocus: onFocusA } }),
+          h(TriggerButton, { options: { id: 'b', onTrigger: () => {} }, x: 200 }),
+        ],
+      }),
+    )
+    await nextTick()
+    expect(onFocusA).toHaveBeenCalledWith({ source: 'core', via: 'initial' })
+  })
+
+  it('forwards the adapter cause to onFocus on navigation', async () => {
+    const onFocusB = vi.fn<() => void>()
+    const { adapter, captured } = captureAdapter()
+    wrapper = mountWithPlugin(
+      defineComponent({
+        setup: () => () => [
+          h(TriggerButton, { options: { id: 'a', onTrigger: () => {} } }),
+          h(TriggerButton, {
+            options: { id: 'b', onTrigger: () => {}, onFocus: onFocusB },
+            x: 200,
+          }),
+        ],
+      }),
+      [adapter],
+    )
+    await nextTick()
+
+    const cause = { source: 'keyboard', via: 'navigate', direction: 'right' } as const
+    captured.ctx!.move('right', cause)
+    await nextTick()
+    expect(onFocusB).toHaveBeenCalledWith(cause)
+  })
+
+  it('synthesizes a core navigate cause when the adapter omits one', async () => {
+    const onFocusB = vi.fn<() => void>()
+    const { adapter, captured } = captureAdapter()
+    wrapper = mountWithPlugin(
+      defineComponent({
+        setup: () => () => [
+          h(TriggerButton, { options: { id: 'a', onTrigger: () => {} } }),
+          h(TriggerButton, {
+            options: { id: 'b', onTrigger: () => {}, onFocus: onFocusB },
+            x: 200,
+          }),
+        ],
+      }),
+      [adapter],
+    )
+    await nextTick()
+
+    captured.ctx!.move('right')
+    await nextTick()
+    expect(onFocusB).toHaveBeenCalledWith({ source: 'core', via: 'navigate', direction: 'right' })
+  })
+
+  it('reports a programmatic focus() as a manual cause', async () => {
+    const onFocusB = vi.fn<() => void>()
+    let focusB: (() => void) | null = null
+    const Host = defineComponent({
+      setup() {
+        useTrigger({ id: 'a', onTrigger: () => {} })
+        focusB = useTrigger({ id: 'b', onTrigger: () => {}, onFocus: onFocusB }).focus
+        return () => null
+      },
+    })
+    wrapper = mountWithPlugin(Host)
+    await nextTick()
+    onFocusB.mockClear() // ignore any initial focus resolution
+
+    focusB!()
+    expect(onFocusB).toHaveBeenCalledWith({ source: 'manual', via: 'programmatic' })
+  })
+
+  it('reports a restore cause when a layer closes and focus returns', async () => {
+    const open = ref(false)
+    const onFocusB = vi.fn<() => void>()
+    const { adapter, captured } = captureAdapter()
+    const Modal = defineComponent({
+      setup() {
+        useTriggerLayer({ id: 'modal' })
+        return () => h(TriggerButton, { options: { id: 'ok', onTrigger: () => {} }, y: 300 })
+      },
+    })
+    wrapper = mountWithPlugin(
+      defineComponent({
+        setup: () => () => [
+          h(TriggerButton, { options: { id: 'a', onTrigger: () => {} } }),
+          h(TriggerButton, {
+            options: { id: 'b', onTrigger: () => {}, onFocus: onFocusB },
+            x: 200,
+          }),
+          open.value ? h(Modal) : null,
+        ],
+      }),
+      [adapter],
+    )
+    await nextTick()
+
+    captured.ctx!.move('right') // focus "b" so it becomes the layer's memory
+    await nextTick()
+    open.value = true // modal takes focus
+    await nextTick()
+    onFocusB.mockClear()
+
+    open.value = false // closing restores "b" from focus memory
+    await nextTick()
+    expect(onFocusB).toHaveBeenCalledWith({ source: 'core', via: 'restore' })
+  })
+
+  it('reports a cleanup cause when the focused trigger is removed', async () => {
+    const show = ref(true)
+    const onFocusB = vi.fn<() => void>()
+    wrapper = mountWithPlugin(
+      defineComponent({
+        setup: () => () => [
+          show.value ? h(TriggerButton, { options: { id: 'a', onTrigger: () => {} } }) : null,
+          h(TriggerButton, {
+            options: { id: 'b', onTrigger: () => {}, onFocus: onFocusB },
+            x: 200,
+          }),
+        ],
+      }),
+    )
+    await nextTick()
+    // "a" holds initial focus; removing it must fall back to "b" with a cleanup cause.
+    show.value = false
+    await nextTick()
+    expect(onFocusB).toHaveBeenCalledWith({ source: 'core', via: 'cleanup' })
+  })
+
   it('tears adapters down on app unmount', async () => {
     const { adapter, captured } = captureAdapter()
     wrapper = mountWithPlugin(

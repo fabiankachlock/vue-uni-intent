@@ -48,9 +48,9 @@ const fire = (target: Element, type: string, init: MouseEventInit = {}) => {
 
 describe('mouseAdapter', () => {
   it('focuses the trigger under the cursor via delegation', () => {
-    fire(innerSpan, 'mouseover')
+    const over = fire(innerSpan, 'mouseover')
     expect(ctx.isRegisteredElement).toHaveBeenCalledWith(outerButton)
-    expect(ctx.focus).toHaveBeenCalledWith('a')
+    expect(ctx.focus).toHaveBeenCalledWith('a', { source: 'mouse', via: 'focus', event: over })
   })
 
   it('does not re-focus while moving within the same trigger', () => {
@@ -68,7 +68,7 @@ describe('mouseAdapter', () => {
 
   it('activates on left click and reports the click event to onTrigger', () => {
     const click = fire(innerSpan, 'click')
-    expect(ctx.focus).toHaveBeenCalledWith('a')
+    expect(ctx.focus).toHaveBeenCalledWith('a', { source: 'mouse', via: 'focus', event: click })
     expect(ctx.activate).toHaveBeenCalledWith({ source: 'mouse', via: 'activate', event: click })
   })
 

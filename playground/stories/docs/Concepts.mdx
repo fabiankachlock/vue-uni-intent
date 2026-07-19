@@ -31,6 +31,18 @@ attached — a native event for keyboard/mouse, the button index for gamepad. Th
 core stays input-agnostic, so the shape is open; the exported guards
 (`isKeyboardCause`, `isMouseCause`, `isGamepadCause`, `isManualCause`) narrow it.
 
+## What focused a trigger
+
+`onFocus` is the focus-side counterpart of `onTrigger`. It fires every time a
+trigger gains focus — by navigation, mouse hover, Tab, a programmatic `focus()`,
+layer activation, autofocus, or refocus after the focused trigger is removed —
+and receives a **`FocusCause`**: the `source` (adapter `name`, `"manual"`, or
+`"core"`), a `via` describing how focus was gained (`"navigate"`, `"focus"`,
+`"programmatic"`, `"tab"`, `"restore"`, `"initial"`, `"cleanup"`), a
+`direction` for navigation, and any native event. The guards
+`isKeyboardFocusCause`, `isMouseFocusCause`, `isGamepadFocusCause`,
+`isManualFocusCause`, and `isCoreFocusCause` narrow it.
+
 ## Spatial navigation
 
 There is no focus graph to declare. When a direction is pressed, the core reads

@@ -1,4 +1,4 @@
-import type { TriggerCause } from '../types'
+import type { FocusCause, TriggerCause } from '../types'
 import type { AdapterContext, InputAdapter } from './types'
 
 /** `TriggerCause` shape produced by the mouse adapter. */
@@ -11,6 +11,19 @@ export type MouseTriggerCause = {
 
 /** Narrow a `TriggerCause` to the mouse adapter's fully-typed shape. */
 export function isMouseCause(cause: TriggerCause): cause is MouseTriggerCause {
+  return cause.source === 'mouse'
+}
+
+/** `FocusCause` shape produced by the mouse adapter (hover / click focus). */
+export type MouseFocusCause = {
+  source: 'mouse'
+  via: 'focus'
+  /** The `mouseover` (hover) or `click` event that moved focus. */
+  event: MouseEvent
+}
+
+/** Narrow a `FocusCause` to the mouse adapter's fully-typed shape. */
+export function isMouseFocusCause(cause: FocusCause): cause is MouseFocusCause {
   return cause.source === 'mouse'
 }
 
@@ -39,7 +52,9 @@ export function mouseAdapter(): InputAdapter {
     // Track the hovered trigger so crossing child elements doesn't re-focus.
     if (id === hoveredId) return
     hoveredId = id
-    if (id !== null) context?.focus(id)
+    if (id !== null) {
+      context?.focus(id, { source: 'mouse', via: 'focus', event } satisfies MouseFocusCause)
+    }
   }
 
   const onMousedown = (event: MouseEvent) => {
@@ -74,7 +89,7 @@ export function mouseAdapter(): InputAdapter {
     if (!context || event.detail === 0) return
     const id = resolveTrigger(event.target)
     if (id === null) return
-    context.focus(id)
+    context.focus(id, { source: 'mouse', via: 'focus', event } satisfies MouseFocusCause)
     context.activate({ source: 'mouse', via: 'activate', event } satisfies MouseTriggerCause)
   }
 

@@ -3,7 +3,7 @@ import type { LayerHandle, LayerManager } from './layers'
 import { ROOT_LAYER_ID } from './layers'
 import { findNext, type NavCandidate } from './navigation'
 import type { TriggerRecord, TriggerRegistry } from './registry'
-import type { Direction, TriggerCause, TriggerId } from './types'
+import type { Direction, FocusCause, TriggerCause, TriggerId } from './types'
 
 export type FocusManagerOptions = {
   wrap: boolean
@@ -29,14 +29,14 @@ export class FocusManager {
   ) {}
 
   /** Focus a trigger of the active layer. No-op for other layers or disabled triggers. */
-  focus(record: TriggerRecord | null): void {
+  focus(record: TriggerRecord | null, cause?: FocusCause): void {
     if (record && (record.layerId !== this.activeLayerId() || record.isDisabled())) return
-    this.setFocused(record)
+    this.setFocused(record, { cause })
   }
 
-  focusId(id: TriggerId): void {
+  focusId(id: TriggerId, cause?: FocusCause): void {
     const record = this.registry.get(id, this.activeLayerId())
-    if (record) this.focus(record)
+    if (record) this.focus(record, cause ?? { source: 'core', via: 'focus' })
   }
 
   /** Fire the focused trigger, forwarding what caused it. */
@@ -47,7 +47,8 @@ export class FocusManager {
   }
 
   /** Move focus via spatial navigation over the active layer's on-screen triggers. */
-  move(direction: Direction): void {
+  move(direction: Direction, cause?: FocusCause): void {
+    const focusCause: FocusCause = cause ?? { source: 'core', via: 'navigate', direction }
     const layerId = this.activeLayerId()
     const candidates: NavCandidate[] = []
     const byId = new Map<TriggerId, TriggerRecord>()
@@ -67,7 +68,7 @@ export class FocusManager {
         : undefined
     if (!from) {
       // Nothing (visible) focused in this layer yet — adopt the first trigger.
-      this.focus(byId.get(candidates[0]!.id)!)
+      this.focus(byId.get(candidates[0]!.id)!, focusCause)
       return
     }
 
@@ -77,7 +78,7 @@ export class FocusManager {
       direction,
       { wrap: this.options.wrap },
     )
-    if (nextId) this.focus(byId.get(nextId)!)
+    if (nextId) this.focus(byId.get(nextId)!, focusCause)
   }
 
   /**
@@ -85,17 +86,24 @@ export class FocusManager {
    * restore), the layer's `initialFocus`, an `autofocus` trigger, or the first
    * registered one. Clears focus when the layer has no focusable triggers.
    */
-  applyLayerFocus(layer: LayerHandle, { preferMemory }: { preferMemory: boolean }): void {
+  applyLayerFocus(
+    layer: LayerHandle,
+    { preferMemory, cause }: { preferMemory: boolean; cause?: FocusCause },
+  ): void {
     const records = this.registry.inLayer(layer.id).filter((r) => !r.isDisabled())
-    const target =
-      (preferMemory && layer.focusMemory
+    const remembered =
+      preferMemory && layer.focusMemory
         ? records.find((r) => r.id === layer.focusMemory)
-        : undefined) ??
+        : undefined
+    const target =
+      remembered ??
       (layer.initialFocus ? records.find((r) => r.id === layer.initialFocus) : undefined) ??
       records.find((r) => r.autofocus) ??
       records[0] ??
       null
-    this.setFocused(target)
+    this.setFocused(target, {
+      cause: cause ?? { source: 'core', via: remembered ? 'restore' : 'initial' },
+    })
   }
 
   /**
@@ -138,7 +146,12 @@ export class FocusManager {
     if (this.focusedRecord.value !== record) return
     this.focusedRecord.value = null
     const layer = this.layers.activeLayer.value
-    if (layer.id === record.layerId) this.applyLayerFocus(layer, { preferMemory: false })
+    if (layer.id === record.layerId) {
+      this.applyLayerFocus(layer, {
+        preferMemory: false,
+        cause: { source: 'core', via: 'cleanup' },
+      })
+    }
   }
 
   /** Adopt native focus changes (e.g. Tab) into the abstract focus state. */
@@ -159,7 +172,7 @@ export class FocusManager {
     if (!record || record === this.focusedRecord.value) return
     if (record.layerId !== this.activeLayerId() || record.isDisabled()) return
     // The element already has native focus — sync state and attributes only.
-    this.setFocused(record, { skipNativeFocus: true })
+    this.setFocused(record, { skipNativeFocus: true, cause: { source: 'core', via: 'tab', event } })
   }
 
   private activeLayerId(): string {
@@ -168,7 +181,7 @@ export class FocusManager {
 
   private setFocused(
     record: TriggerRecord | null,
-    { skipNativeFocus = false }: { skipNativeFocus?: boolean } = {},
+    { skipNativeFocus = false, cause }: { skipNativeFocus?: boolean; cause?: FocusCause } = {},
   ): void {
     const prev = this.focusedRecord.value
     if (prev === record) return
@@ -194,5 +207,8 @@ export class FocusManager {
         }
       }
     }
+
+    // Notify after DOM state is consistent, so handlers observing focus see it.
+    if (record) record.onFocus?.(cause ?? { source: 'core', via: 'initial' })
   }
 }

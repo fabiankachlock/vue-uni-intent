@@ -66,11 +66,78 @@ export function isManualCause(cause: TriggerCause): cause is ManualTriggerCause 
   return cause.source === 'manual'
 }
 
+/**
+ * How a trigger gained focus — the `via` field of a `FocusCause`.
+ * - `'navigate'` — spatial navigation (an adapter's `move`).
+ * - `'focus'` — direct focus of a specific trigger (mouse hover/click, an adapter's `focus(id)`).
+ * - `'programmatic'` — a consumer-called `useTrigger().focus()`.
+ * - `'tab'` — native focus change adopted via `focusin` (e.g. Tab).
+ * - `'restore'` — a layer became active again and its remembered focus was restored.
+ * - `'initial'` — a layer/app resolved its initial focus (`initialFocus`, `autofocus`, or first trigger).
+ * - `'cleanup'` — the focused trigger was removed and focus fell back to a survivor.
+ */
+export type FocusVia =
+  | 'navigate'
+  | 'focus'
+  | 'programmatic'
+  | 'tab'
+  | 'restore'
+  | 'initial'
+  | 'cleanup'
+
+/**
+ * Describes what caused focus to land on a trigger — the argument passed to
+ * `onFocus`. Mirrors `TriggerCause`: the core stays input-agnostic, so
+ * adapter-driven focus changes carry the adapter's `name` as `source` (plus any
+ * native `event`), while focus the core resolves itself (native Tab, layer
+ * activation, autofocus, refocus after removal) carries `source: 'core'`, and a
+ * programmatic `focus()` carries `source: 'manual'`. Built-in adapters export a
+ * precise shape (`KeyboardFocusCause`, `MouseFocusCause`, `GamepadFocusCause`).
+ */
+export type FocusCause = {
+  /** The adapter that moved focus (its `name`), `'manual'`, or `'core'`. */
+  source: string
+  /** How focus was gained. */
+  via: FocusVia
+  /** Navigation direction, present when `via` is `'navigate'`. */
+  direction?: Direction
+  /** The native DOM event behind the input, when the source has one (keyboard, mouse). */
+  event?: Event
+  /** Adapter-specific detail — e.g. the gamepad `button` index. */
+  [key: string]: unknown
+}
+
+/** `FocusCause` shape produced by a programmatic `useTrigger().focus()` call. */
+export type ManualFocusCause = {
+  source: 'manual'
+  via: 'programmatic'
+}
+
+/** Narrow a `FocusCause` to a programmatic (`.focus()`) cause. */
+export function isManualFocusCause(cause: FocusCause): cause is ManualFocusCause {
+  return cause.source === 'manual'
+}
+
+/** `FocusCause` shape produced by the core itself (Tab, layer activation, autofocus, cleanup). */
+export type CoreFocusCause = {
+  source: 'core'
+  via: 'tab' | 'restore' | 'initial' | 'cleanup' | 'focus' | 'navigate'
+  direction?: Direction
+  event?: Event
+}
+
+/** Narrow a `FocusCause` to one the core resolved itself (no adapter, not programmatic). */
+export function isCoreFocusCause(cause: FocusCause): cause is CoreFocusCause {
+  return cause.source === 'core'
+}
+
 export type UseTriggerOptions = {
   /** Unique within its layer. */
   id: TriggerId
   /** Called when the trigger fires; receives what caused it (adapter, native event, …). */
   onTrigger: (cause: TriggerCause) => void
+  /** Called when this trigger gains focus; receives what caused it (see `FocusCause`). */
+  onFocus?: (cause: FocusCause) => void
   /** Extra inputs that fire this trigger regardless of focus, e.g. `[key("Escape"), button("B")]`. */
   shortcuts?: ShortcutDescriptor[]
   /** Disabled triggers are skipped by navigation and shortcuts. */

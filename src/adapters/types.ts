@@ -1,4 +1,4 @@
-import type { Direction, TriggerCause, TriggerId } from '../types'
+import type { Direction, FocusCause, TriggerCause, TriggerId } from '../types'
 
 /** A raw input occurrence that may match a trigger's shortcut descriptor. */
 export type ShortcutInput =
@@ -19,12 +19,19 @@ export type ShortcutInput =
  * registry, layers, or other adapters.
  */
 export type AdapterContext = {
-  /** Move focus within the active layer via spatial navigation. */
-  move: (direction: Direction) => void
+  /**
+   * Move focus within the active layer via spatial navigation. Pass a
+   * `FocusCause` (adapter `name`, native `event`, …) to describe the input;
+   * it reaches the newly focused trigger's `onFocus`.
+   */
+  move: (direction: Direction, cause?: FocusCause) => void
   /** Activate the currently focused trigger, passing `cause` to its `onTrigger`. */
   activate: (cause: TriggerCause) => void
-  /** Focus a specific trigger. No-op if it is not in the active layer or disabled. */
-  focus: (id: TriggerId) => void
+  /**
+   * Focus a specific trigger. No-op if it is not in the active layer or disabled.
+   * Pass a `FocusCause` describing the input; it reaches the trigger's `onFocus`.
+   */
+  focus: (id: TriggerId, cause?: FocusCause) => void
   /**
    * Match the input against active-layer shortcuts and fire the target, passing
    * `cause` to its `onTrigger`. Returns `true` if one matched.

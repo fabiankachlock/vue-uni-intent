@@ -53,6 +53,7 @@ import { useTrigger, key, button, mouseButton } from "vue-uni-intent";
 const { ref: el, focused, focus, trigger } = useTrigger({
   id: "back",
   onTrigger: () => router.back(),
+  onFocus: (cause) => preview(cause), // optional: runs whenever this trigger gains focus
   // optional: the same handler fires on ESC, gamepad B, or the mouse back button
   shortcuts: [key("Escape"), button("B"), mouseButton("Back")],
   disabled: () => busy.value, // skipped by navigation and shortcuts
@@ -96,6 +97,35 @@ onTrigger: (cause) => {
 
 `isMouseCause` and `isManualCause` are exported too. Custom adapters attach their
 own detail; narrow it with your own guard.
+
+## What focused a trigger
+
+`onFocus` mirrors `onTrigger` for focus changes: it runs every time a trigger
+gains focus and receives a `FocusCause`. Like `TriggerCause`, adapter-driven
+focus carries the adapter's `source` and any native `event`; focus the core
+resolves itself carries `source: "core"`, and a programmatic `focus()` carries
+`source: "manual"`. The `via` field says how focus was gained:
+
+- `"navigate"` — spatial navigation (`direction` is set)
+- `"focus"` — direct focus of a trigger (mouse hover/click)
+- `"programmatic"` — a `useTrigger().focus()` call
+- `"tab"` — native Tab adopted via `focusin`
+- `"restore"` — a layer became active again and its remembered focus returned
+- `"initial"` — a layer/app resolved its initial focus
+- `"cleanup"` — the focused trigger was removed and focus fell back to a survivor
+
+```ts
+import { isKeyboardFocusCause, isManualFocusCause } from "vue-uni-intent";
+
+onFocus: (cause) => {
+  if (cause.via === "navigate") announce(cause.direction);   // "up" | "down" | …
+  if (isKeyboardFocusCause(cause)) cause.event.preventDefault(); // KeyboardEvent
+  if (isManualFocusCause(cause)) return; // ignore our own focus() calls
+};
+```
+
+`isMouseFocusCause`, `isGamepadFocusCause`, and `isCoreFocusCause` are exported
+too.
 
 ## Focus layers
 

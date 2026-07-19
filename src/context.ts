@@ -37,9 +37,9 @@ export function createInputContext(options: UniIntentOptions): InputContext {
   layers.attachFocus(focus)
 
   const adapterContext: AdapterContext = {
-    move: (direction) => focus.move(direction),
+    move: (direction, cause) => focus.move(direction, cause),
     activate: (cause) => focus.activate(cause),
-    focus: (id) => focus.focusId(id),
+    focus: (id, cause) => focus.focusId(id, cause),
     dispatchShortcut: (input, cause) => {
       const records = registry.inLayer(layers.activeLayer.value.id)
       const target = findShortcutTarget(input, records)

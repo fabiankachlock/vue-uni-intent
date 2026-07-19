@@ -1,5 +1,5 @@
 import { shallowReactive } from 'vue'
-import type { ShortcutDescriptor, TriggerCause, TriggerId } from './types'
+import type { FocusCause, ShortcutDescriptor, TriggerCause, TriggerId } from './types'
 
 export type TriggerRecord = {
   id: TriggerId
@@ -10,6 +10,7 @@ export type TriggerRecord = {
   shortcuts: ShortcutDescriptor[]
   autofocus: boolean
   onTrigger: (cause: TriggerCause) => void
+  onFocus?: (cause: FocusCause) => void
   /** Registration counter for stable ordering and tie-breaking. */
   order: number
 }

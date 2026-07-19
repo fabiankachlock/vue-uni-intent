@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { createGamepadPollState, pollGamepads, type GamepadPollState } from '../adapters/gamepad'
 import type { AdapterContext, ShortcutInput } from '../adapters/types'
 import { GamepadButton } from '../helpers'
-import type { TriggerCause } from '../types'
+import type { Direction, TriggerCause } from '../types'
+
+/** The `FocusCause` the gamepad adapter attaches to every navigation move. */
+const navCause = (direction: Direction) => ({ source: 'gamepad', via: 'navigate', direction })
 
 type FakePad = {
   buttons?: number[]
@@ -80,7 +83,7 @@ describe('pollGamepads', () => {
     poll([pad({ buttons: [GamepadButton.DPadRight] })], 16)
     poll([pad()], 32)
     expect(ctx.move).toHaveBeenCalledTimes(1)
-    expect(ctx.move).toHaveBeenCalledWith('right')
+    expect(ctx.move).toHaveBeenCalledWith('right', navCause('right'))
   })
 
   it('repeats a held direction after the initial delay, then at the interval', () => {
@@ -101,8 +104,8 @@ describe('pollGamepads', () => {
   it('moves immediately when the held direction changes', () => {
     poll([pad({ buttons: [GamepadButton.DPadDown] })], 0)
     poll([pad({ buttons: [GamepadButton.DPadRight] })], 16)
-    expect(ctx.move).toHaveBeenNthCalledWith(1, 'down')
-    expect(ctx.move).toHaveBeenNthCalledWith(2, 'right')
+    expect(ctx.move).toHaveBeenNthCalledWith(1, 'down', navCause('down'))
+    expect(ctx.move).toHaveBeenNthCalledWith(2, 'right', navCause('right'))
   })
 
   it('resolves stick input past the deadzone by dominant axis', () => {
@@ -110,16 +113,16 @@ describe('pollGamepads', () => {
     expect(ctx.move).not.toHaveBeenCalled()
 
     poll([pad({ axes: [-0.9, 0.4] })], 16)
-    expect(ctx.move).toHaveBeenCalledWith('left')
+    expect(ctx.move).toHaveBeenCalledWith('left', navCause('left'))
 
     poll([pad()], 32) // release
     poll([pad({ axes: [0.2, -0.8] })], 48)
-    expect(ctx.move).toHaveBeenCalledWith('up')
+    expect(ctx.move).toHaveBeenCalledWith('up', navCause('up'))
   })
 
   it('prefers the D-pad over the stick', () => {
     poll([pad({ buttons: [GamepadButton.DPadUp], axes: [1, 0] })], 0)
-    expect(ctx.move).toHaveBeenCalledWith('up')
+    expect(ctx.move).toHaveBeenCalledWith('up', navCause('up'))
   })
 
   it('treats a released and re-pressed direction as a fresh tap', () => {

@@ -45,11 +45,21 @@ afterEach(() => {
 describe('keyboardAdapter', () => {
   it('maps arrow keys to moves and prevents scrolling', () => {
     const event = press('ArrowRight')
-    expect(ctx.move).toHaveBeenCalledWith('right')
+    expect(ctx.move).toHaveBeenCalledWith('right', {
+      source: 'keyboard',
+      via: 'navigate',
+      direction: 'right',
+      event,
+    })
     expect(event.defaultPrevented).toBe(true)
 
-    press('ArrowUp')
-    expect(ctx.move).toHaveBeenCalledWith('up')
+    const up = press('ArrowUp')
+    expect(ctx.move).toHaveBeenCalledWith('up', {
+      source: 'keyboard',
+      via: 'navigate',
+      direction: 'up',
+      event: up,
+    })
   })
 
   it('activates on Enter and Space with preventDefault (no synthetic click)', () => {
@@ -73,8 +83,13 @@ describe('keyboardAdapter', () => {
     adapter.teardown()
     setup({ keys: { up: ['w'], down: ['s'], left: ['a'], right: ['d'], activate: ['e'] } })
 
-    press('w')
-    expect(ctx.move).toHaveBeenCalledWith('up')
+    const w = press('w')
+    expect(ctx.move).toHaveBeenCalledWith('up', {
+      source: 'keyboard',
+      via: 'navigate',
+      direction: 'up',
+      event: w,
+    })
     press('e')
     expect(ctx.activate).toHaveBeenCalledOnce()
     press('ArrowUp')

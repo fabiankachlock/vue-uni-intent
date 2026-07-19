@@ -66,6 +66,14 @@ a direction goes.
 to `onTrigger` — `source`, `via`, and any native `event` / adapter detail. The shape is
 open (the core stays input-agnostic); each adapter exports a typed cause + `isXxxCause` guard.
 
+Focus has the symmetric `FocusCause` → `onFocus` (optional per trigger). Every focus change
+flows through `FocusManager.setFocused`, which fires `onFocus` with a cause: adapter-driven
+focus (`ctx.move`/`ctx.focus` carry an optional `FocusCause`) reports `source` + native
+`event`; a programmatic `useTrigger().focus()` reports `source: 'manual'`; core-resolved focus
+(Tab via `focusin`, layer activation/`restore`, `initial` autofocus, `cleanup` after removal)
+reports `source: 'core'`. `via` distinguishes them. Each adapter exports a typed
+`XxxFocusCause` + `isXxxFocusCause` guard, mirroring the trigger causes.
+
 Layer nuance: `useTriggerLayer` uses both `provide(LAYER_ID_KEY)` (for descendant
 `useTrigger` calls) and `ctx.ownLayers` (a `WeakMap` keyed by component instance) so a
 `useTrigger` call **later in the same component's setup** still attaches to the layer —

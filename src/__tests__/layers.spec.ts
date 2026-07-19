@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { FocusManager } from '../focus'
 import { LayerManager, ROOT_LAYER_ID } from '../layers'
 import { TriggerRegistry, type TriggerRecord } from '../registry'
-import type { TriggerCause } from '../types'
+import type { FocusCause, TriggerCause } from '../types'
 
 type TriggerSetup = {
   id: string
@@ -12,6 +12,7 @@ type TriggerSetup = {
   disabled?: boolean
   autofocus?: boolean
   onTrigger?: (cause: TriggerCause) => void
+  onFocus?: (cause: FocusCause) => void
 }
 
 let registry: TriggerRegistry
@@ -26,6 +27,7 @@ function makeTrigger({
   disabled = false,
   autofocus = false,
   onTrigger = vi.fn<(cause: TriggerCause) => void>(),
+  onFocus,
 }: TriggerSetup): TriggerRecord {
   const element = document.createElement('button')
   // jsdom has no layout — stub the rect used by spatial navigation.
@@ -40,6 +42,7 @@ function makeTrigger({
     shortcuts: [],
     autofocus,
     onTrigger,
+    onFocus,
   })
   registry.setElement(record, element)
   return record
@@ -113,8 +116,9 @@ describe('FocusManager', () => {
   })
 
   it('adopts native focusin events for registered elements', () => {
+    const onFocusB = vi.fn<(cause: FocusCause) => void>()
     const a = makeTrigger({ id: 'a' })
-    const b = makeTrigger({ id: 'b', x: 200 })
+    const b = makeTrigger({ id: 'b', x: 200, onFocus: onFocusB })
     focus.attachFocusinSync(window)
     focus.focus(a)
 
@@ -123,6 +127,11 @@ describe('FocusManager', () => {
     b.element!.dispatchEvent(new FocusEvent('focusin', { bubbles: true }))
     expect(focus.focusedRecord.value).toBe(b)
     expect(b.element!.hasAttribute('data-uni-focused')).toBe(true)
+    expect(onFocusB).toHaveBeenCalledWith({
+      source: 'core',
+      via: 'tab',
+      event: expect.any(FocusEvent),
+    })
 
     focus.detachFocusinSync()
   })
