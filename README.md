@@ -47,6 +47,7 @@ createApp(App)
       initialFocus: "first", // or "none"
       scroll: true, // scroll the focused trigger into view; or ScrollIntoViewOptions / false
       scrollMargin: { top: 64 }, // keep-clear space so a sticky header never covers focus
+      debug: import.meta.env.DEV, // enable the spatial-nav debug overlay (Ctrl+Alt+D)
     }),
   )
   .mount("#app");
@@ -85,6 +86,19 @@ createUniIntent({ /* … */ scrollMargin: { top: 64 } }); // or a number for all
 `scrollIntoView` honors), so it needs no CSS. Equivalently you can set
 `scroll-margin` on the triggers or `scroll-padding` on the scroll container
 yourself and leave `scrollMargin` unset.
+
+### Debug overlay
+
+Set `debug: true` (or gate it behind `import.meta.env.DEV`) to make a
+spatial-navigation overlay available, toggled at runtime with `Ctrl+Alt+D`. It
+boxes every visible trigger with its per-direction scores in place (winner
+highlighted), draws the winning connector lines, and renders a full score matrix
+so you can see exactly why a direction goes where it goes. Pass
+`debug: { hotkey: key("d", { ctrl: true, shift: true }) }` to rebind the toggle.
+
+```ts
+createUniIntent({ /* … */ debug: import.meta.env.DEV });
+```
 
 ## useTrigger
 

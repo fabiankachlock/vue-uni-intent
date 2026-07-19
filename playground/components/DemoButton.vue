@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useTrigger, type ShortcutDescriptor } from "vue-uni-intent";
+import { useTrigger, type FocusCause, type ShortcutDescriptor } from "vue-uni-intent";
 
 const props = defineProps<{
   id: string;
@@ -9,11 +9,12 @@ const props = defineProps<{
   shortcuts?: ShortcutDescriptor[];
 }>();
 
-const emit = defineEmits<{ trigger: [] }>();
+const emit = defineEmits<{ trigger: []; focus: [cause: FocusCause] }>();
 
 const { ref: el } = useTrigger({
   id: props.id,
   onTrigger: () => emit("trigger"),
+  onFocus: (cause) => emit("focus", cause),
   shortcuts: props.shortcuts,
   disabled: () => props.disabled ?? false,
   autofocus: props.autofocus,
