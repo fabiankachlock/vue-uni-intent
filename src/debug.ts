@@ -1,13 +1,6 @@
 import { shallowRef } from 'vue'
 import type { InputContext } from './context'
-import {
-  ALIGNED_WEIGHT,
-  UNALIGNED_WEIGHT,
-  explainNext,
-  type NavCandidate,
-  type NavCandidateExplanation,
-  type NavExplanation,
-} from './navigation'
+import { explainNext, type NavCandidate, type NavExplanation, type NavVerdict } from './navigation'
 import { matchShortcut } from './shortcuts'
 import type { Direction, KeyShortcut, UniIntentDebugOptions } from './types'
 
@@ -45,17 +38,24 @@ type DebugBox = {
   height: number
   focused: boolean
   disabled: boolean
+  /** This box's outcome as a candidate for each direction (from the origin). */
+  cells: Partial<Record<Direction, DebugCell>>
   /** Directions this box is the navigation target for, with the winning score. */
   wins: { direction: Direction; score: number | null }[]
 }
 
-/** One direction's outcome from the origin, with the "why" spelled out. */
+/** One box's standing in one direction's query — the matrix cell. */
+type DebugCell = {
+  verdict: NavVerdict
+  /** Present for `scored`/`winner`; the value the matrix compares. */
+  score: number | null
+}
+
+/** One direction's outcome from the origin, summarized for the footer. */
 type DirectionReport = {
   direction: Direction
   target: string | null
   why: string
-  /** Runner-up scores and exclusion counts; empty when there is nothing to add. */
-  also: string
 }
 
 const escapeHtml = (value: string): string =>
@@ -75,26 +75,13 @@ function hotkeyLabel(hotkey: KeyShortcut): string {
   return parts.join('+')
 }
 
-function summarizeExcluded(candidates: NavCandidateExplanation[]): string {
-  const parts: string[] = []
-  const count = (verdict: NavCandidateExplanation['verdict']) =>
-    candidates.filter((c) => c.verdict === verdict).length
-  const outsideCone = count('outside-cone')
-  const behind = count('behind')
-  const wrapExcluded = count('wrap-excluded')
-  if (outsideCone) parts.push(`${outsideCone} outside cone`)
-  if (behind) parts.push(`${behind} behind`)
-  if (wrapExcluded) parts.push(`${wrapExcluded} off-axis for wrap`)
-  return parts.join(' · ')
-}
-
+/** A one-line explanation of a direction's outcome for the footer. */
 function reportDirection(
   direction: Direction,
   explanation: NavExplanation,
   wrap: boolean,
 ): DirectionReport {
   const { word } = DIRECTION_META[direction]
-  const excluded = summarizeExcluded(explanation.candidates)
 
   if (!explanation.target) {
     let why: string
@@ -110,47 +97,29 @@ function reportDirection(
           ? ` — ${offAxis} behind but off-axis, so no wrap target`
           : ' and nothing behind to wrap to')
     }
-    return { direction, target: null, why, also: excluded }
+    return { direction, target: null, why }
   }
 
   const winner = explanation.candidates.find((c) => c.id === explanation.target)!
   let why: string
   if (explanation.mode === 'wrap') {
-    why =
-      `wrapped to the opposite edge — Δ${px(winner.crossDistance)} across, ` +
-      `${winner.aligned ? 'aligned' : 'within cross tolerance'}`
+    why = `wrapped · Δ${px(winner.crossDistance)} across`
   } else {
-    const weight = winner.aligned ? ALIGNED_WEIGHT : UNALIGNED_WEIGHT
-    why =
-      `score ${num(winner.score!)} = Δ${px(winner.primaryDistance)} ahead + ` +
-      `Δ${px(winner.crossDistance)} across ×${weight} ` +
-      `(${winner.aligned ? 'aligned' : 'unaligned'}, ` +
-      `${winner.inCone ? 'in cone' : 'cone empty — nearest ahead'})`
+    const forward = `score ${num(winner.score!)} · Δ${px(winner.primaryDistance)} ahead`
+    why = winner.aligned
+      ? `${forward}, aligned`
+      : `${forward} · Δ${px(winner.crossDistance)} across`
   }
-
-  const runnersUp = explanation.candidates
-    .filter((c) => c.verdict === 'scored')
-    .sort((a, b) => a.score! - b.score!)
-  const alsoParts: string[] = []
-  if (runnersUp.length > 0) {
-    const shown = runnersUp
-      .slice(0, 3)
-      .map((c) => `"${c.id}" ${num(c.score!)}`)
-      .join(', ')
-    const more = runnersUp.length > 3 ? ` +${runnersUp.length - 3} more` : ''
-    alsoParts.push(`beat ${shown}${more}`)
-  }
-  if (excluded) alsoParts.push(excluded)
-  return { direction, target: explanation.target, why, also: alsoParts.join(' · ') }
+  return { direction, target: explanation.target, why }
 }
 
 /**
  * The spatial-navigation debug overlay. While enabled it outlines every
  * visible trigger of the active layer, marks the navigation target for each
- * direction (badge + connecting line), and explains in a panel why each
- * direction resolves the way it does — scores, cone/wrap decisions, and what
- * was excluded. Toggled by a hotkey; drawn with plain DOM (no Vue) so it adds
- * nothing to the app's component tree.
+ * direction (badge + connecting line), and shows a score matrix — every
+ * candidate's score in every direction, so a losing target can be compared
+ * against the winner. Toggled by a hotkey; drawn with plain DOM (no Vue) so it
+ * adds nothing to the app's component tree.
  */
 export class DebugController {
   readonly enabled = shallowRef(false)
@@ -190,7 +159,7 @@ export class DebugController {
     root.setAttribute('data-uni-debug', '')
     root.style.cssText =
       'position:fixed;inset:0;z-index:2147483647;pointer-events:none;' +
-      'font:11px/1.5 ui-monospace,monospace;color:#e2e8f0;'
+      'font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:#e2e8f0;'
     document.body.appendChild(root)
     this.root = root
     this.signature = null
@@ -243,7 +212,13 @@ export class DebugController {
     const signature = JSON.stringify(model)
     if (signature === this.signature) return
     this.signature = signature
+    // Preserve the matrix scroll position across the innerHTML swap so
+    // scrolling the page (which re-renders every frame) stays usable.
+    const prevScroll =
+      this.root.querySelector<HTMLElement>('[data-uni-debug-scroll]')?.scrollTop ?? 0
     this.root.innerHTML = this.renderHtml(model)
+    const scroller = this.root.querySelector<HTMLElement>('[data-uni-debug-scroll]')
+    if (scroller) scroller.scrollTop = prevScroll
   }
 
   /** Gather the active layer's targets and run the four direction queries. */
@@ -277,6 +252,7 @@ export class DebugController {
         height: Math.round(rect.height),
         focused: record === focusedRecord,
         disabled,
+        cells: {},
         wins: [],
       })
     }
@@ -295,6 +271,11 @@ export class DebugController {
           direction,
           { wrap },
         )
+        for (const candidate of explanation.candidates) {
+          const box = boxes.find((b) => b.id === candidate.id)
+          if (box)
+            box.cells[direction] = { verdict: candidate.verdict, score: candidate.score ?? null }
+        }
         if (explanation.target) {
           const winner = explanation.candidates.find((c) => c.id === explanation.target)!
           boxes
@@ -358,73 +339,140 @@ export class DebugController {
       `${box.focused ? 'color:#fff;font-weight:700;' : ''}${box.disabled ? 'opacity:.7;' : ''}">` +
       `${escapeHtml(box.id)}${box.focused ? ' · origin' : ''}${box.disabled ? ' · disabled' : ''}</span>`
 
-    const badges = box.wins
-      .map((win) => {
-        const meta = DIRECTION_META[win.direction]
-        return (
-          `<span data-uni-debug-winner="${win.direction}" style="background:${meta.color};` +
-          `color:#0b1020;font-weight:700;padding:0 4px;border-radius:2px">` +
-          `${meta.arrow}${win.score !== null ? ` ${num(win.score)}` : ''}</span>`
-        )
-      })
+    // Every direction this box competes in, shown on the box itself — the
+    // winner for a direction is highlighted, the rest are its losing scores so
+    // they can be compared in place without reading the panel.
+    const tags = DIRECTIONS.map((direction) => {
+      const cell = box.cells[direction]
+      if (!cell || cell.score === null) return ''
+      const meta = DIRECTION_META[direction]
+      const winner = cell.verdict === 'winner'
+      const attr = winner ? ` data-uni-debug-winner="${direction}"` : ''
+      const style = winner
+        ? `background:${meta.color};color:#0b1020;font-weight:700`
+        : `color:${meta.color};background:rgba(2,6,23,.55)`
+      return `<span${attr} style="padding:0 3px;border-radius:2px;${style}">${meta.arrow}${num(cell.score)}</span>`
+    })
+      .filter(Boolean)
       .join('')
-    const badgeRow = badges
-      ? `<span style="position:absolute;top:2px;right:2px;display:flex;gap:2px">${badges}</span>`
+    const scoreBlock = tags
+      ? `<span style="position:absolute;inset:0;display:flex;flex-wrap:wrap;align-content:center;` +
+        `justify-content:center;gap:2px 3px;padding:2px;font-size:10px;line-height:1.25">${tags}</span>`
       : ''
 
     return (
       `<div data-uni-debug-box="${escapeHtml(box.id)}" style="position:absolute;` +
       `left:${box.x}px;top:${box.y}px;width:${box.width}px;height:${box.height}px;` +
       `outline:${outline};outline-offset:1px;box-shadow:${rings.join(',')};` +
-      `${box.disabled ? 'opacity:.6;' : ''}">${label}${badgeRow}</div>`
+      `${box.disabled ? 'opacity:.6;' : ''}">${label}${scoreBlock}</div>`
     )
   }
 
   private renderPanel(model: DebugModel): string {
-    const lines: string[] = []
-    lines.push(`<div style="font-weight:700;margin-bottom:2px">vue-uni-intent debug</div>`)
     const enabledCount = model.boxes.filter((b) => !b.disabled).length
     const disabledCount = model.boxes.length - enabledCount
     const stats = [
       `layer "${escapeHtml(model.layerId)}"`,
       `${enabledCount} target${enabledCount === 1 ? '' : 's'}`,
       disabledCount ? `${disabledCount} disabled` : '',
-      model.hidden ? `${model.hidden} hidden (no element / zero size)` : '',
+      model.hidden ? `${model.hidden} hidden` : '',
       `wrap ${model.wrap ? 'on' : 'off'}`,
-      `${hotkeyLabel(this.hotkey)} to close`,
     ].filter(Boolean)
-    lines.push(`<div style="opacity:.75;margin-bottom:6px">${stats.join(' · ')}</div>`)
 
+    const header =
+      `<div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:6px">` +
+      `<span style="font-weight:700">vue-uni-intent</span>` +
+      `<span style="opacity:.6;white-space:nowrap">${hotkeyLabel(this.hotkey)} to close</span></div>` +
+      `<div style="opacity:.7;margin-bottom:8px">${stats.join(' | ')}</div>`
+
+    let body: string
     if (!model.originId) {
-      lines.push(
+      body =
         `<div>no focused trigger — ` +
-          (model.adoptId
-            ? `the next move adopts "${escapeHtml(model.adoptId)}"`
-            : 'nothing to navigate') +
-          `</div>`,
-      )
+        (model.adoptId
+          ? `the next move adopts <b>"${escapeHtml(model.adoptId)}"</b>`
+          : 'nothing to navigate') +
+        `</div>`
     } else {
-      lines.push(
-        `<div style="margin-bottom:4px">origin: <b>"${escapeHtml(model.originId)}"</b></div>`,
-      )
-      for (const report of model.reports) {
-        const meta = DIRECTION_META[report.direction]
-        const head = report.target
-          ? `<b>"${escapeHtml(report.target)}"</b> — ${escapeHtml(report.why)}`
-          : `<span style="opacity:.75">none — ${escapeHtml(report.why)}</span>`
-        const also = report.also
-          ? `<div style="opacity:.6;padding-left:16px">${escapeHtml(report.also)}</div>`
-          : ''
-        lines.push(
-          `<div><span style="color:${meta.color};font-weight:700">${meta.arrow}</span> ${head}${also}</div>`,
-        )
-      }
+      body =
+        `<div style="margin-bottom:6px">origin: <b>"${escapeHtml(model.originId)}"</b></div>` +
+        this.renderMatrix(model) +
+        this.renderReports(model)
     }
 
     return (
-      `<div data-uni-debug-panel style="position:absolute;right:8px;bottom:8px;max-width:520px;` +
-      `padding:10px 12px;border-radius:8px;background:rgba(2,6,23,.92);` +
-      `box-shadow:0 4px 24px rgba(0,0,0,.4)">${lines.join('')}</div>`
+      `<div data-uni-debug-panel style="position:fixed;left:8px;bottom:8px;` +
+      `width:min(360px,calc(100vw - 16px));max-height:min(70vh,520px);display:flex;flex-direction:column;` +
+      `pointer-events:auto;padding:10px 12px;border-radius:8px;` +
+      `background:rgba(2,6,23,.94);box-shadow:0 4px 24px rgba(0,0,0,.45);` +
+      `border:1px solid rgba(148,163,184,.2)">${header}${body}</div>`
     )
+  }
+
+  /**
+   * The score matrix: one row per visible trigger, one column per direction.
+   * Each cell is that trigger's score for that direction — the winner is
+   * highlighted, a `·` means it isn't reachable that way (behind or off-axis).
+   * This is what lets you compare the chosen target against the runners-up.
+   */
+  private renderMatrix(model: DebugModel): string {
+    const th =
+      `<th style="text-align:left;padding:2px 6px 4px 0;opacity:.6;font-weight:400">target</th>` +
+      DIRECTIONS.map(
+        (d) =>
+          `<th style="padding:2px 4px 4px;color:${DIRECTION_META[d].color};` +
+          `font-size:13px;text-align:center">${DIRECTION_META[d].arrow}</th>`,
+      ).join('')
+
+    const rows = model.boxes
+      .map((box) => {
+        const isOrigin = box.id === model.originId
+        const cells = DIRECTIONS.map((d) => this.renderCell(box, d, isOrigin)).join('')
+        const tag = isOrigin ? ' <span style="opacity:.7">◎</span>' : box.disabled ? ' ⊘' : ''
+        const rowBg = isOrigin ? 'background:rgba(148,163,184,.14);' : ''
+        const rowFade = box.disabled ? 'opacity:.55;' : ''
+        return (
+          `<tr style="${rowBg}${rowFade}"><td style="padding:2px 6px 2px 0;white-space:nowrap;` +
+          `${isOrigin ? 'font-weight:700;' : ''}">${escapeHtml(box.id)}${tag}</td>${cells}</tr>`
+        )
+      })
+      .join('')
+
+    return (
+      `<div data-uni-debug-scroll style="flex:1 1 auto;min-height:0;overflow:auto;margin-bottom:6px">` +
+      `<table style="border-collapse:collapse;width:100%">` +
+      `<thead><tr>${th}</tr></thead><tbody>${rows}</tbody></table></div>`
+    )
+  }
+
+  private renderCell(box: DebugBox, direction: Direction, isOrigin: boolean): string {
+    const base = 'padding:2px 4px;text-align:center;'
+    const cell = box.cells[direction]
+    if (isOrigin || !cell || cell.score === null) {
+      return `<td style="${base}opacity:.3">·</td>`
+    }
+    if (cell.verdict === 'winner') {
+      const meta = DIRECTION_META[direction]
+      return (
+        `<td style="${base}background:${meta.color};color:#0b1020;font-weight:700;` +
+        `border-radius:3px">${num(cell.score)}</td>`
+      )
+    }
+    return `<td style="${base}color:#cbd5e1">${num(cell.score)}</td>`
+  }
+
+  private renderReports(model: DebugModel): string {
+    const lines = model.reports.map((report) => {
+      const meta = DIRECTION_META[report.direction]
+      const head = report.target
+        ? `<b>"${escapeHtml(report.target)}"</b>`
+        : `<span style="opacity:.7">none</span>`
+      return (
+        `<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">` +
+        `<span style="color:${meta.color};font-weight:700">${meta.arrow}</span> ` +
+        `${head} <span style="opacity:.6">${escapeHtml(report.why)}</span></div>`
+      )
+    })
+    return `<div style="display:flex;flex-direction:column;gap:1px">${lines.join('')}</div>`
   }
 }

@@ -156,6 +156,25 @@ export type UseTriggerReturn = {
   trigger: () => void
 }
 
+export type UseAvailableInputsReturn = {
+  /**
+   * Reactive set of input source names currently usable — an adapter's `name`
+   * (`'keyboard'`, `'mouse'`, `'gamepad'`, or a custom adapter's). Reassigned
+   * immutably on change, so watching `.value` sees a fresh `ReadonlySet`.
+   */
+  available: ComputedRef<ReadonlySet<string>>
+  /** Whether a physical keyboard is available (built-in keyboard adapter). */
+  keyboard: ComputedRef<boolean>
+  /** Whether a fine pointer (mouse/trackpad) is available (mouse adapter's `mouse`). */
+  mouse: ComputedRef<boolean>
+  /** Whether a coarse pointer (touch) is available (mouse adapter's `touch`). */
+  touch: ComputedRef<boolean>
+  /** Whether a gamepad is currently connected (built-in gamepad adapter). */
+  gamepad: ComputedRef<boolean>
+  /** Reactively test any source by name — handy for custom adapters. */
+  has: (source: string) => boolean
+}
+
 export type UseTriggerLayerOptions = {
   /** Auto-generated if omitted. */
   id?: string
@@ -187,6 +206,34 @@ export type UniIntentOptions = {
   wrap?: boolean
   /** Initial focus strategy for the root layer. Default `"first"`. */
   initialFocus?: 'first' | 'none'
+  /**
+   * How the focused trigger is scrolled into view when focus moves. The core
+   * always focuses with `preventScroll`, then scrolls the element itself so the
+   * behavior is consistent across input sources.
+   *
+   * - `true` (default) — scroll into view with `{ block: 'nearest', inline: 'nearest' }`.
+   * - `false` — never scroll; the consumer handles it (e.g. in `onFocus`).
+   * - `ScrollIntoViewOptions` — passed straight to `element.scrollIntoView`,
+   *   e.g. `{ block: 'center' }` to keep focus centered.
+   *
+   * Scrolling honors CSS `scroll-margin` (on triggers) and `scroll-padding` (on
+   * the scroll container); `scrollMargin` (below) sets the former for you.
+   */
+  scroll?: boolean | ScrollIntoViewOptions
+  /**
+   * Keep-clear margin around the focused trigger when it is scrolled into view,
+   * in pixels — applied as the element's `scroll-margin` so the scroll leaves
+   * this much space between the trigger and the edge of the scrollport. The
+   * fix for a **sticky header**: set the top margin to (at least) the header's
+   * height and the target will never be parked underneath it. No CSS required.
+   *
+   * - a number — the same margin on all four sides.
+   * - `{ top?, right?, bottom?, left? }` — per side (omitted sides are `0`).
+   *
+   * Omit to not manage `scroll-margin` at all (any CSS `scroll-margin` you set
+   * on triggers still applies).
+   */
+  scrollMargin?: number | { top?: number; right?: number; bottom?: number; left?: number }
   /**
    * Enable the spatial-navigation debug overlay, toggled at runtime by its
    * hotkey. Off by default; pass `true` (or options) to make it available —

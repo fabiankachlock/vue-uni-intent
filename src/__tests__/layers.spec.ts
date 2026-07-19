@@ -52,7 +52,12 @@ beforeEach(() => {
   document.body.innerHTML = ''
   registry = new TriggerRegistry()
   layers = new LayerManager()
-  focus = new FocusManager(registry, layers, { wrap: false, initialFocus: 'first' })
+  focus = new FocusManager(registry, layers, {
+    wrap: false,
+    initialFocus: 'first',
+    scroll: false,
+    scrollMargin: null,
+  })
   layers.attachFocus(focus)
 })
 

@@ -20,10 +20,12 @@ API and usage examples.
 - **Per-app state, never module-global.** All state lives in an `InputContext`
   (`src/context.ts`) created in the plugin's `install()` and shared via provide/inject.
   Multiple apps can coexist.
-- **Real DOM focus.** The focused trigger gets a real `element.focus()` with a roving
-  tabindex (focused = `0`, others = `-1`), so native Tab keeps working. A
-  `data-uni-focused` attribute is set for styling; `data-uni-trigger` marks trigger
-  elements for mouse delegation.
+- **Real DOM focus.** The focused trigger gets a real `element.focus()` (with
+  `preventScroll`, then a follow-up `scrollIntoView` the core controls via the `scroll` /
+  `scrollMargin` options — `scrollMargin` is written to the element's `scroll-margin` to
+  clear sticky headers) and a roving tabindex (focused = `0`, others = `-1`), so native
+  Tab keeps working. A `data-uni-focused` attribute is set for styling; `data-uni-trigger`
+  marks trigger elements for mouse delegation.
 
 ## Architecture
 
@@ -39,14 +41,34 @@ The pieces and their responsibilities:
 - `src/focus.ts` — `FocusManager`. Owns the single-focus invariant: which trigger is
   focused, spatial `move()`, mirroring to the DOM, focus memory, and adopting native focus
   changes (Tab) via the `focusin` listener.
-- `src/navigation.ts` — pure `findNext()`. Given the origin rect, candidate rects, a
-  direction, and `wrap`, returns the target id. No Vue, no DOM — fully unit-testable.
+- `src/navigation.ts` — pure `findNext()` / `explainNext()`. Given the origin rect,
+  candidate rects, a direction, and `wrap`, returns the target id. **Edge-based** (like
+  Blink / the CSS spatial-nav spec), never center-to-center: `project()` orients each
+  rect's leading/trailing edges so "forward" increases; a candidate is "ahead" only if its
+  near edge clears the origin's far edge; score is `max(0, forwardGap) + crossGap ×
+  CROSS_AXIS_WEIGHT` with `crossGap = 0` on cross-axis overlap. This is what makes
+  full-bleed elements, lifted focus, and pinned headers behave. No Vue, no DOM —
+  fully unit-testable.
+- `src/debug.ts` — `DebugController`. The hotkey-toggled spatial-navigation overlay:
+  boxes each visible trigger showing its per-direction scores in place (winner
+  highlighted), draws the winning connector lines, and renders a score matrix (every
+  candidate's score in every direction) plus a per-direction summary. Plain DOM, no Vue;
+  re-measures each frame via `explainNext`.
 - `src/layers.ts` — `LayerManager` + `useTriggerLayer()`. A stack of focus layers; the
   topmost owns navigation/activation/shortcuts. Root layer is always at the bottom.
 - `src/shortcuts.ts` — `matchShortcut()` / `findShortcutTarget()`. Match a raw input against
   descriptors; earliest registered match wins (ambiguity warns in dev).
 - `src/useTrigger.ts` — the `useTrigger()` composable. Registers a record synchronously
   (so shortcuts/autofocus exist pre-mount), binds the element via the template ref.
+- `src/availability.ts` — `AvailabilityRegistry`. A reactive `ShallowRef<ReadonlySet<string>>`
+  of usable input-source names, reassigned immutably on change. Adapters push into it via
+  `AdapterContext.setAvailable(name, boolean)`; the core only stores strings (stays
+  input-agnostic). Surfaced to consumers by `useAvailableInputs()`.
+- `src/useAvailableInputs.ts` — the `useAvailableInputs()` composable. Exposes the availability
+  set plus named `keyboard`/`mouse`/`touch`/`gamepad` boolean refs and a `has(name)`.
+- `src/adapters/media.ts` — `watchMedia(query, onChange, fallback)`. Watches a CSS media query
+  (immediate + on change, with cleanup); falls back to `fallback` when `matchMedia` is
+  unavailable (SSR/jsdom). Used for capability-based availability.
 - `src/helpers.ts` — `key()`, `button()`, `mouseButton()` descriptor builders and the
   `Key` / `GamepadButton` / `GamepadAxis` / `MouseButton` name→index constants.
 - `src/adapters/` — `keyboard.ts`, `mouse.ts`, `gamepad.ts` and the adapter contract in
@@ -65,6 +87,13 @@ a direction goes.
 `activate`/`dispatchShortcut`/manual `.trigger()` all pass a `TriggerCause` (`src/types.ts`)
 to `onTrigger` — `source`, `via`, and any native `event` / adapter detail. The shape is
 open (the core stays input-agnostic); each adapter exports a typed cause + `isXxxCause` guard.
+
+Adapters also report **availability** via `ctx.setAvailable(name, boolean)`, exposed to
+consumers by `useAvailableInputs()`. This is capability-based, not just "installed": keyboard
+is inferred from the primary pointer then confirmed on the first real keydown; the mouse
+adapter reports `mouse` (`(any-pointer: fine)`) and `touch` (`(any-pointer: coarse)`) as
+separate concerns; gamepad toggles with connection. A source is absent unless its adapter is
+installed AND the capability is present.
 
 Focus has the symmetric `FocusCause` → `onFocus` (optional per trigger). Every focus change
 flows through `FocusManager.setFocused`, which fires `onFocus` with a cause: adapter-driven

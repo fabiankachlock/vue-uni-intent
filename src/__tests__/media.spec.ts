@@ -15,7 +15,7 @@ function stubMatchMedia(initial: boolean) {
     addEventListener: (_: string, cb: () => void) => listeners.add(cb),
     removeEventListener: (_: string, cb: () => void) => listeners.delete(cb),
   }
-  const matchMedia = vi.fn(() => mql as unknown as MediaQueryList)
+  const matchMedia = vi.fn<() => MediaQueryList>(() => mql as unknown as MediaQueryList)
   vi.stubGlobal('matchMedia', matchMedia)
   return {
     matchMedia,
@@ -30,7 +30,7 @@ function stubMatchMedia(initial: boolean) {
 describe('watchMedia', () => {
   it('emits the current match immediately and on every change', () => {
     const media = stubMatchMedia(false)
-    const onChange = vi.fn()
+    const onChange = vi.fn<(matches: boolean) => void>()
     watchMedia('(any-pointer: fine)', onChange, true)
 
     expect(onChange).toHaveBeenNthCalledWith(1, false)
@@ -40,7 +40,7 @@ describe('watchMedia', () => {
 
   it('removes its listener on cleanup', () => {
     const media = stubMatchMedia(true)
-    const onChange = vi.fn()
+    const onChange = vi.fn<(matches: boolean) => void>()
     const stop = watchMedia('(any-pointer: fine)', onChange, true)
 
     expect(media.listenerCount()).toBe(1)
@@ -52,7 +52,7 @@ describe('watchMedia', () => {
 
   it('falls back to the given default and no-ops when matchMedia is unavailable', () => {
     // jsdom has no matchMedia by default.
-    const onChange = vi.fn()
+    const onChange = vi.fn<(matches: boolean) => void>()
     const stop = watchMedia('(any-pointer: fine)', onChange, true)
     expect(onChange).toHaveBeenCalledExactlyOnceWith(true)
     expect(() => stop()).not.toThrow()

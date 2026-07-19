@@ -1,5 +1,6 @@
 export { createUniIntent } from './plugin'
 export { useTrigger } from './useTrigger'
+export { useAvailableInputs } from './useAvailableInputs'
 export { useTriggerLayer, ROOT_LAYER_ID } from './layers'
 
 export {
@@ -65,6 +66,7 @@ export type {
   ShortcutDescriptor,
   TriggerCause,
   TriggerId,
+  UseAvailableInputsReturn,
   UseTriggerLayerOptions,
   UseTriggerLayerReturn,
   UseTriggerOptions,

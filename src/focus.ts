@@ -8,6 +8,10 @@ import type { Direction, FocusCause, TriggerCause, TriggerId } from './types'
 export type FocusManagerOptions = {
   wrap: boolean
   initialFocus: 'first' | 'none'
+  /** How to scroll the focused element into view; `false` never scrolls. */
+  scroll: false | ScrollIntoViewOptions
+  /** `scroll-margin` shorthand to set on the focused element before scrolling, or `null`. */
+  scrollMargin: string | null
 }
 
 /**
@@ -133,11 +137,27 @@ export class FocusManager {
     if (this.focusedRecord.value !== record || !record.element) return
     record.element.setAttribute('data-uni-focused', '')
     record.element.tabIndex = 0
+    this.applyDomFocus(record.element)
+  }
+
+  /**
+   * Give an element real focus, then scroll it into view ourselves. We always
+   * focus with `preventScroll` so the browser's minimal "nearest edge" scroll
+   * can't tuck the target under a sticky header; the follow-up `scrollIntoView`
+   * honors CSS `scroll-margin`/`scroll-padding` and any consumer override.
+   */
+  private applyDomFocus(element: HTMLElement): void {
     this.syncingDom = true
     try {
-      record.element.focus()
+      element.focus({ preventScroll: true })
     } finally {
       this.syncingDom = false
+    }
+    if (this.options.scroll && typeof element.scrollIntoView === 'function') {
+      // `scroll-margin` keeps the target off the scrollport edges — the way to
+      // clear a sticky header — and `scrollIntoView` honors it natively.
+      if (this.options.scrollMargin !== null) element.style.scrollMargin = this.options.scrollMargin
+      element.scrollIntoView(this.options.scroll)
     }
   }
 
@@ -198,14 +218,7 @@ export class FocusManager {
     if (record?.element) {
       record.element.setAttribute('data-uni-focused', '')
       record.element.tabIndex = 0
-      if (!skipNativeFocus) {
-        this.syncingDom = true
-        try {
-          record.element.focus()
-        } finally {
-          this.syncingDom = false
-        }
-      }
+      if (!skipNativeFocus) this.applyDomFocus(record.element)
     }
 
     // Notify after DOM state is consistent, so handlers observing focus see it.

@@ -47,13 +47,23 @@ and receives a **`FocusCause`**: the `source` (adapter `name`, `"manual"`, or
 
 There is no focus graph to declare. When a direction is pressed, the core reads
 the on-screen rectangles of the active layer's triggers and picks the best
-target in that direction — favoring candidates that are close and aligned on the
-cross axis. Disabled and zero-size triggers are skipped.
+target in that direction — **edge-based**, the way browsers (Blink, the CSS
+spatial-navigation spec) and game engines do it, never center-to-center. Among
+the triggers whose leading edge clears the origin's leading edge, it minimizes
+`forwardGap + crossGap × 2`, with `crossGap` at `0` while the rects overlap on
+the cross axis. Reading edges is what makes it match what you see: a full-bleed
+element has nothing to its left/right, a lifted focus or sub-pixel stagger can't
+divert a straight press sideways, and a pinned header can't win by center
+proximity. Disabled and zero-size triggers are skipped.
 
 With `wrap: true`, walking past an edge cycles to the opposite side of the same
 row or column; with `wrap: false` (the default) it stops. The _Basics / Grid
 Navigation_ stories demonstrate both, plus disabled cells and custom key
 bindings.
+
+Focus moves scroll the new target into view. Behind a sticky header, set
+`scrollMargin: { top: <header height> }` so focus is never parked underneath it
+— see the `scroll` / `scrollMargin` options in the API reference.
 
 ## Focus layers
 

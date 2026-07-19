@@ -9,6 +9,7 @@ let ctx: {
   focus: Mock
   dispatchShortcut: Mock
   isRegisteredElement: Mock
+  setAvailable: Mock
 }
 let adapter: ReturnType<typeof keyboardAdapter>
 
@@ -31,6 +32,7 @@ function setup(options?: Parameters<typeof keyboardAdapter>[0], shortcutHandled 
       () => shortcutHandled,
     ),
     isRegisteredElement: vi.fn<() => string | null>(() => null),
+    setAvailable: vi.fn<() => void>(),
   }
   adapter = keyboardAdapter(options)
   adapter.setup(ctx as unknown as AdapterContext)
@@ -147,5 +149,37 @@ describe('keyboardAdapter', () => {
     expect(ctx.move).not.toHaveBeenCalled()
     // Re-setup so afterEach teardown stays balanced.
     setup()
+  })
+
+  it('defaults keyboard available when capabilities are undetectable, false on teardown', () => {
+    // jsdom has no matchMedia → watchMedia falls back to available.
+    expect(ctx.setAvailable).toHaveBeenCalledWith('keyboard', true)
+    adapter.teardown()
+    expect(ctx.setAvailable).toHaveBeenLastCalledWith('keyboard', false)
+    setup() // keep afterEach teardown balanced
+  })
+
+  it('infers keyboard from the primary pointer, then promotes on a real keydown', () => {
+    adapter.teardown()
+    // Coarse primary pointer (phone/tablet): no keyboard assumed up front.
+    const matchMedia = vi.fn<(q: string) => MediaQueryList>(
+      (query) =>
+        ({
+          matches: false, // (pointer: fine) → false
+          media: query,
+          addEventListener: vi.fn<MediaQueryList['addEventListener']>(),
+          removeEventListener: vi.fn<MediaQueryList['removeEventListener']>(),
+        }) as unknown as MediaQueryList,
+    )
+    vi.stubGlobal('matchMedia', matchMedia)
+
+    setup()
+    expect(ctx.setAvailable).toHaveBeenCalledWith('keyboard', false)
+
+    // A physical keydown proves a keyboard exists → promote.
+    press('a')
+    expect(ctx.setAvailable).toHaveBeenLastCalledWith('keyboard', true)
+
+    vi.unstubAllGlobals()
   })
 })

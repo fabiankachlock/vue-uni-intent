@@ -1,4 +1,5 @@
 import type { Direction, FocusCause, TriggerCause } from '../types'
+import { watchMedia } from './media'
 import type { AdapterContext, InputAdapter } from './types'
 
 /** `TriggerCause` shape produced by the keyboard adapter. */
@@ -71,10 +72,19 @@ export function keyboardAdapter(options: KeyboardAdapterOptions = {}): InputAdap
   ]
 
   let context: AdapterContext | null = null
+  let stopMedia: (() => void) | null = null
+  /** Once a real keydown proves a keyboard exists, stop inferring from media. */
+  let observed = false
 
   const onKeydown = (event: KeyboardEvent) => {
     const ctx = context
     if (!ctx) return
+    // Any keydown — even into a text field — proves a physical keyboard is
+    // present; promote to available and never demote from media hints again.
+    if (!observed) {
+      observed = true
+      ctx.setAvailable('keyboard', true)
+    }
     const hasModifier = event.ctrlKey || event.altKey || event.metaKey
 
     // Typing into a field: only modifier shortcuts may fire; navigation,
@@ -125,10 +135,25 @@ export function keyboardAdapter(options: KeyboardAdapterOptions = {}): InputAdap
     setup(ctx) {
       context = ctx
       window.addEventListener('keydown', onKeydown)
+      // No media query detects a physical keyboard, so default from the primary
+      // pointer: fine (desktop) assumes one, coarse (phone/tablet) does not —
+      // corrected the moment a real keydown arrives. Assume present when
+      // capabilities can't be detected (SSR/tests).
+      stopMedia = watchMedia(
+        '(pointer: fine)',
+        (fine) => {
+          if (!observed) ctx.setAvailable('keyboard', fine)
+        },
+        true,
+      )
     },
     teardown() {
       window.removeEventListener('keydown', onKeydown)
+      stopMedia?.()
+      stopMedia = null
+      context?.setAvailable('keyboard', false)
       context = null
+      observed = false
     },
   }
 }

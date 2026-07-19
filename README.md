@@ -39,10 +39,46 @@ createApp(App)
       ],
       wrap: false, // wrap-around navigation at the edges
       initialFocus: "first", // or "none"
+      scroll: true, // scroll the focused trigger into view; or ScrollIntoViewOptions / false
+      scrollMargin: { top: 64 }, // keep-clear space so a sticky header never covers focus
     }),
   )
   .mount("#app");
 ```
+
+### Navigation
+
+Navigation is **edge-based**, like browsers (Blink / the CSS spatial-navigation
+spec) and game engines — never center-to-center. Pressing a direction keeps only
+the triggers whose leading edge clears the origin's leading edge in that
+direction, then picks the one minimizing `forwardGap + crossGap × 2`, where
+`crossGap` is `0` while the rects overlap on the cross axis. Because it reads
+rectangle edges, it matches what you see: a full-bleed element has nothing to
+its left or right, a focus-lift animation or sub-pixel stagger can't divert a
+straight press to a sideways neighbor, and a pinned header never wins just
+because its center is close. `wrap` cycles to the opposite edge of the same
+row/column at the boundaries.
+
+### Scrolling focus into view
+
+Focus moves scroll the new target into view (real `focus({ preventScroll })`
+followed by `scrollIntoView`). Control it with `scroll`:
+
+- `true` (default) — `{ block: "nearest", inline: "nearest" }`
+- `false` — never scroll; handle it yourself in `onFocus`
+- `ScrollIntoViewOptions` — e.g. `{ block: "center" }` to keep focus centered
+
+Behind a **sticky header**, use `scrollMargin` so focus is never parked
+underneath it — set the top margin to (at least) the header's height:
+
+```ts
+createUniIntent({ /* … */ scrollMargin: { top: 64 } }); // or a number for all sides
+```
+
+`scrollMargin` is applied as the trigger's `scroll-margin` (which
+`scrollIntoView` honors), so it needs no CSS. Equivalently you can set
+`scroll-margin` on the triggers or `scroll-padding` on the scroll container
+yourself and leave `scrollMargin` unset.
 
 ## useTrigger
 
@@ -139,6 +175,36 @@ const { isActive } = useTriggerLayer({ id: "settings-modal" });
 </script>
 ```
 
+## Available inputs
+
+`useAvailableInputs()` reactively reports which input sources can actually be
+used right now, so you can adapt the UI — swap button-prompt glyphs, hide
+keyboard hints on a touch phone, show a "controller connected" badge:
+
+```vue
+<script setup lang="ts">
+import { useAvailableInputs } from "vue-uni-intent";
+
+const { available, keyboard, mouse, touch, gamepad } = useAvailableInputs();
+// available -> reactive ReadonlySet of source names, e.g. Set { "keyboard", "mouse" }
+// keyboard / mouse / touch / gamepad -> reactive booleans
+// available.has("midi") — or use has("midi") — for custom adapters
+</script>
+```
+
+Availability reflects real device capability, reported by the installed
+adapters — nothing is available unless its adapter is installed:
+
+- **`keyboard`** — inferred from the primary pointer (a fine pointer implies a
+  desktop with a keyboard; a coarse one implies a touch device without), then
+  confirmed the moment any real keydown arrives (so a Bluetooth keyboard on a
+  tablet flips it on).
+- **`mouse`** — a fine pointer (mouse/trackpad) exists (`(any-pointer: fine)`).
+- **`touch`** — a coarse pointer (finger) exists (`(any-pointer: coarse)`).
+  `mouse` and `touch` are independent: a hybrid laptop reports both.
+- **`gamepad`** — at least one controller is connected; flips on and off as
+  controllers connect and disconnect.
+
 ## Shortcut helpers
 
 ```ts
@@ -174,6 +240,7 @@ export function midiAdapter(): InputAdapter {
       // ctx.activate({ source: "midi", via: "activate", note })
       // ctx.focus(id)
       // ctx.dispatchShortcut(input, { source: "midi", via: "shortcut", note })
+      // ctx.setAvailable("midi", true) — surfaces via useAvailableInputs()
     },
     teardown() {
       stop();

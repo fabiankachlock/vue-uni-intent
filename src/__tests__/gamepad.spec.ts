@@ -1,5 +1,10 @@
-import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
-import { createGamepadPollState, pollGamepads, type GamepadPollState } from '../adapters/gamepad'
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
+import {
+  createGamepadPollState,
+  gamepadAdapter,
+  pollGamepads,
+  type GamepadPollState,
+} from '../adapters/gamepad'
 import type { AdapterContext, ShortcutInput } from '../adapters/types'
 import { GamepadButton } from '../helpers'
 import type { Direction, TriggerCause } from '../types'
@@ -135,5 +140,78 @@ describe('pollGamepads', () => {
   it('handles null pad slots and multiple pads', () => {
     poll([null, pad({ buttons: [GamepadButton.A] }), null], 0)
     expect(ctx.activate).toHaveBeenCalledOnce()
+  })
+})
+
+describe('gamepadAdapter availability', () => {
+  let pads: (Gamepad | null)[]
+  let rafCb: FrameRequestCallback | null
+  let adapterCtx: { setAvailable: Mock } & Record<string, unknown>
+
+  beforeEach(() => {
+    pads = []
+    rafCb = null
+    Object.defineProperty(navigator, 'getGamepads', {
+      value: vi.fn<() => (Gamepad | null)[]>(() => pads),
+      configurable: true,
+      writable: true,
+    })
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+      rafCb = cb
+      return 1
+    })
+    vi.stubGlobal('cancelAnimationFrame', () => {
+      rafCb = null
+    })
+    adapterCtx = {
+      move: vi.fn<AdapterContext['move']>(),
+      activate: vi.fn<AdapterContext['activate']>(),
+      focus: vi.fn<AdapterContext['focus']>(),
+      dispatchShortcut: vi.fn<AdapterContext['dispatchShortcut']>(() => false),
+      isRegisteredElement: vi.fn<AdapterContext['isRegisteredElement']>(() => null),
+      setAvailable: vi.fn<AdapterContext['setAvailable']>(),
+    }
+  })
+
+  afterEach(() => vi.unstubAllGlobals())
+
+  const start = () => {
+    const adapter = gamepadAdapter()
+    adapter.setup(adapterCtx as unknown as AdapterContext)
+    return adapter
+  }
+
+  it('does not report a gamepad until one connects', () => {
+    start() // no pads present
+    expect(adapterCtx.setAvailable).not.toHaveBeenCalledWith('gamepad', true)
+  })
+
+  it('reports available when a pad is already connected at setup', () => {
+    pads = [pad()]
+    start()
+    expect(adapterCtx.setAvailable).toHaveBeenCalledWith('gamepad', true)
+  })
+
+  it('reports available on gamepadconnected', () => {
+    start()
+    pads = [pad()]
+    window.dispatchEvent(new Event('gamepadconnected'))
+    expect(adapterCtx.setAvailable).toHaveBeenCalledWith('gamepad', true)
+  })
+
+  it('reports unavailable once the last pad disconnects', () => {
+    pads = [pad()]
+    start()
+    // Pad drops; next poll frame sees an empty list and stops the loop.
+    pads = []
+    rafCb?.(performance.now())
+    expect(adapterCtx.setAvailable).toHaveBeenLastCalledWith('gamepad', false)
+  })
+
+  it('reports unavailable on teardown', () => {
+    pads = [pad()]
+    const adapter = start()
+    adapter.teardown()
+    expect(adapterCtx.setAvailable).toHaveBeenLastCalledWith('gamepad', false)
   })
 })

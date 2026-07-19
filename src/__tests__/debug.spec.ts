@@ -108,14 +108,14 @@ describe('debug overlay', () => {
     expect(document.querySelector('[data-uni-debug-box="a"]')).not.toBeNull()
     expect(document.querySelector('[data-uni-debug-box="b"]')).not.toBeNull()
 
-    // "a" holds initial focus; "b" is the target for `right` (Δ200 aligned → score 200).
+    // "a" holds initial focus; "b" is the target for `right` (100px edge gap, aligned → score 100).
     const badge = document.querySelector('[data-uni-debug-box="b"] [data-uni-debug-winner="right"]')
     expect(badge).not.toBeNull()
-    expect(badge!.textContent).toContain('200')
+    expect(badge!.textContent).toContain('100')
 
     const panel = document.querySelector('[data-uni-debug-panel]')!
     expect(panel.textContent).toContain('origin: "a"')
-    expect(panel.textContent).toContain('"b" — score 200')
+    expect(panel.textContent).toContain('score 100')
     expect(panel.textContent).toContain('nothing to the left (wrap off)')
   })
 

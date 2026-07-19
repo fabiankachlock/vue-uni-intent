@@ -184,10 +184,13 @@ export function gamepadAdapter(options: GamepadAdapterOptions = {}): InputAdapte
       rafHandle = requestAnimationFrame(loop)
     } else {
       state = createGamepadPollState()
+      // Last pad disconnected — the loop stops here, so report unavailable.
+      context.setAvailable('gamepad', false)
     }
   }
 
   const startLoop = () => {
+    context?.setAvailable('gamepad', true)
     rafHandle ??= requestAnimationFrame(loop)
   }
 
@@ -207,6 +210,7 @@ export function gamepadAdapter(options: GamepadAdapterOptions = {}): InputAdapte
       window.removeEventListener('gamepadconnected', startLoop)
       if (rafHandle !== null) cancelAnimationFrame(rafHandle)
       rafHandle = null
+      context.setAvailable('gamepad', false)
       context = null
       state = createGamepadPollState()
     },

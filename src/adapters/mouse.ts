@@ -1,4 +1,5 @@
 import type { FocusCause, TriggerCause } from '../types'
+import { watchMedia } from './media'
 import type { AdapterContext, InputAdapter } from './types'
 
 /** `TriggerCause` shape produced by the mouse adapter. */
@@ -34,12 +35,19 @@ export function isMouseFocusCause(cause: FocusCause): cause is MouseFocusCause {
  * - hover (`mouseover`) focuses the trigger under the cursor
  * - left click activates it
  * - other buttons (middle/right/back/forward) dispatch `MouseShortcut`s
+ *
+ * Being pointer delegation, this also handles touch taps (which synthesize
+ * `click`), so it reports two availability concerns separately: `mouse` (a fine
+ * pointer exists) and `touch` (a coarse pointer exists). A device may have
+ * both, one, or — briefly, before any pointer is detected — neither.
  */
 export function mouseAdapter(): InputAdapter {
   let context: AdapterContext | null = null
   let hoveredId: string | null = null
   /** Right-clicks consumed by a shortcut also suppress the context menu. */
   let suppressContextMenu = false
+  let stopMouseMedia: (() => void) | null = null
+  let stopTouchMedia: (() => void) | null = null
 
   const resolveTrigger = (target: EventTarget | null): string | null => {
     if (!context || !(target instanceof Element)) return null
@@ -101,12 +109,27 @@ export function mouseAdapter(): InputAdapter {
       document.addEventListener('mousedown', onMousedown)
       document.addEventListener('contextmenu', onContextMenu)
       document.addEventListener('click', onClick)
+      // A fine pointer (mouse/trackpad) and a coarse pointer (touch) are
+      // independent — track each and keep them live as devices come and go.
+      // Fall back to mouse-only when capabilities can't be detected (SSR/tests).
+      stopMouseMedia = watchMedia('(any-pointer: fine)', (m) => ctx.setAvailable('mouse', m), true)
+      stopTouchMedia = watchMedia(
+        '(any-pointer: coarse)',
+        (m) => ctx.setAvailable('touch', m),
+        false,
+      )
     },
     teardown() {
       document.removeEventListener('mouseover', onMouseover)
       document.removeEventListener('mousedown', onMousedown)
       document.removeEventListener('contextmenu', onContextMenu)
       document.removeEventListener('click', onClick)
+      stopMouseMedia?.()
+      stopTouchMedia?.()
+      stopMouseMedia = null
+      stopTouchMedia = null
+      context?.setAvailable('mouse', false)
+      context?.setAvailable('touch', false)
       context = null
       hoveredId = null
       suppressContextMenu = false

@@ -9,6 +9,7 @@ let ctx: {
   focus: Mock
   dispatchShortcut: Mock
   isRegisteredElement: Mock
+  setAvailable: Mock
 }
 let adapter: ReturnType<typeof mouseAdapter>
 let outerButton: HTMLButtonElement
@@ -30,6 +31,7 @@ beforeEach(() => {
     isRegisteredElement: vi.fn<(el: Element) => string | null>((el) =>
       el.getAttribute('data-uni-trigger'),
     ),
+    setAvailable: vi.fn<() => void>(),
   }
   adapter = mouseAdapter()
   adapter.setup(ctx as unknown as AdapterContext)
@@ -142,5 +144,37 @@ describe('mouseAdapter', () => {
     expect(ctx.activate).not.toHaveBeenCalled()
     expect(ctx.focus).not.toHaveBeenCalled()
     adapter.setup(ctx as unknown as AdapterContext)
+  })
+
+  it('defaults to mouse-available, touch-unavailable when capabilities are undetectable', () => {
+    // beforeEach ran setup(); jsdom has no matchMedia → watchMedia fallbacks.
+    expect(ctx.setAvailable).toHaveBeenCalledWith('mouse', true)
+    expect(ctx.setAvailable).toHaveBeenCalledWith('touch', false)
+    adapter.teardown()
+    expect(ctx.setAvailable).toHaveBeenCalledWith('mouse', false)
+    expect(ctx.setAvailable).toHaveBeenCalledWith('touch', false)
+    adapter.setup(ctx as unknown as AdapterContext) // keep afterEach balanced
+  })
+
+  it('reports mouse and touch independently from pointer capabilities', () => {
+    adapter.teardown()
+    ctx.setAvailable.mockClear()
+    // Touchscreen laptop: has both a fine pointer and a coarse one.
+    const matchMedia = vi.fn<(q: string) => MediaQueryList>(
+      (query) =>
+        ({
+          matches: query.includes('fine') || query.includes('coarse'),
+          media: query,
+          addEventListener: vi.fn<MediaQueryList['addEventListener']>(),
+          removeEventListener: vi.fn<MediaQueryList['removeEventListener']>(),
+        }) as unknown as MediaQueryList,
+    )
+    vi.stubGlobal('matchMedia', matchMedia)
+
+    adapter.setup(ctx as unknown as AdapterContext)
+    expect(ctx.setAvailable).toHaveBeenCalledWith('mouse', true)
+    expect(ctx.setAvailable).toHaveBeenCalledWith('touch', true)
+
+    vi.unstubAllGlobals()
   })
 })

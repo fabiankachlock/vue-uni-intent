@@ -39,6 +39,15 @@ export type AdapterContext = {
   dispatchShortcut: (input: ShortcutInput, cause: TriggerCause) => boolean
   /** Resolve a DOM element to a trigger id in the ACTIVE layer, or `null`. */
   isRegisteredElement: (el: Element) => TriggerId | null
+  /**
+   * Report whether this input source is currently usable, keyed by the
+   * adapter's `name`. Sources usable whenever installed (keyboard, mouse) call
+   * this once with `true` in `setup`; sources that come and go (gamepad) toggle
+   * it as they connect/disconnect. Surfaces to consumers via
+   * `useAvailableInputs()`. Optional — an adapter that never calls it simply
+   * never appears as available.
+   */
+  setAvailable: (source: string, available: boolean) => void
 }
 
 /**

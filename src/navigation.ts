@@ -16,11 +16,16 @@ export type NavOptions = {
   wrap?: boolean
 }
 
-/** Sub-pixel jitter guard for the half-plane filter. */
+/** Sub-pixel jitter guard for the edge comparisons. */
 const EPSILON = 1
-/** Cross-axis penalty: mild when rects overlap on the cross axis, strong otherwise. */
-export const ALIGNED_WEIGHT = 0.5
-export const UNALIGNED_WEIGHT = 5
+/**
+ * How much a pixel of cross-axis offset costs relative to a pixel of forward
+ * gap. > 1 so that "right" keeps meaning right: a candidate a little past the
+ * edge but far off to the side loses to one that is squarely ahead. Alignment
+ * itself needs no reward — overlapping the origin's row/column gives a cross
+ * offset of exactly 0.
+ */
+const CROSS_AXIS_WEIGHT = 2
 /**
  * Max cross-axis stagger (in multiples of the origin's own cross-axis size)
  * for a wrap target. Keeps wrapping a cycle within the current row/column
@@ -29,66 +34,73 @@ export const UNALIGNED_WEIGHT = 5
 const WRAP_CROSS_TOLERANCE = 1
 
 /**
- * A rect projected into movement space: `primary` grows in the direction of
- * movement, `cross` is the orthogonal axis. Lets every direction share one
- * scoring implementation.
+ * A rect projected into movement space by its EDGES (not its center). `near`
+ * and `far` are the leading/trailing edges along the movement axis, sign-
+ * flipped so "forward" always increases; `crossStart`/`crossEnd` are the extent
+ * on the orthogonal axis. Edge projection is what makes navigation match what
+ * you see: a candidate counts as "ahead" only when it genuinely clears the
+ * origin's leading edge, and alignment is real geometric overlap — so a wide
+ * full-bleed element, a lifted focus, or a pinned header can't fool it the way
+ * center-to-center distance does.
  */
 type Projected = {
   id: string
-  primary: number // center along movement axis (sign-flipped so "forward" is positive)
-  cross: number // center along cross axis
-  crossStart: number // rect extent on the cross axis
+  near: number
+  far: number
+  crossStart: number
   crossEnd: number
 }
 
 function project(candidate: NavCandidate, direction: Direction): Projected {
   const { rect, id } = candidate
-  const cx = rect.x + rect.width / 2
-  const cy = rect.y + rect.height / 2
-  const horizontal = direction === 'left' || direction === 'right'
-  const forward = direction === 'down' || direction === 'right' ? 1 : -1
-  return horizontal
-    ? { id, primary: cx * forward, cross: cy, crossStart: rect.y, crossEnd: rect.y + rect.height }
-    : { id, primary: cy * forward, cross: cx, crossStart: rect.x, crossEnd: rect.x + rect.width }
+  const x0 = rect.x
+  const x1 = rect.x + rect.width
+  const y0 = rect.y
+  const y1 = rect.y + rect.height
+  switch (direction) {
+    case 'right':
+      return { id, near: x0, far: x1, crossStart: y0, crossEnd: y1 }
+    case 'left':
+      return { id, near: -x1, far: -x0, crossStart: y0, crossEnd: y1 }
+    case 'down':
+      return { id, near: y0, far: y1, crossStart: x0, crossEnd: x1 }
+    case 'up':
+      return { id, near: -y1, far: -y0, crossStart: x0, crossEnd: x1 }
+  }
 }
 
-function crossAligned(a: Projected, b: Projected): boolean {
-  return Math.min(a.crossEnd, b.crossEnd) - Math.max(a.crossStart, b.crossStart) >= EPSILON
-}
-
-function score(from: Projected, to: Projected, primaryDist: number): number {
-  const crossDist = Math.abs(to.cross - from.cross)
-  return primaryDist + crossDist * (crossAligned(from, to) ? ALIGNED_WEIGHT : UNALIGNED_WEIGHT)
+/** Overlap of the two rects on the cross axis; negative when they don't touch. */
+function crossOverlap(a: Projected, b: Projected): number {
+  return Math.min(a.crossEnd, b.crossEnd) - Math.max(a.crossStart, b.crossStart)
 }
 
 /**
  * Why a candidate did or did not become the navigation target:
  * - `'winner'` — chosen target.
- * - `'scored'` — competed in the final pool but lost on score.
- * - `'outside-cone'` — ahead of the origin, but excluded because other
- *   candidates were inside the 45° cone.
- * - `'behind'` — not ahead of the origin on the movement axis (within
- *   `EPSILON` counts as behind).
+ * - `'scored'` — competed for the target but lost on score.
+ * - `'behind'` — not ahead of the origin's leading edge on the movement axis.
  * - `'wrap-excluded'` — wrap pass only: behind the origin but too far off the
  *   cross axis to count as the same row/column.
  */
-export type NavVerdict = 'winner' | 'scored' | 'outside-cone' | 'behind' | 'wrap-excluded'
+export type NavVerdict = 'winner' | 'scored' | 'behind' | 'wrap-excluded'
 
 export type NavCandidateExplanation = {
   id: string
   verdict: NavVerdict
-  /** Center-to-center distance along the movement axis; negative = behind the origin. */
+  /**
+   * Edge-to-edge gap along the movement axis: origin's leading edge to the
+   * candidate's near edge. `~0` when they abut, negative when the candidate
+   * overlaps or sits behind the origin (then it is not "ahead").
+   */
   primaryDistance: number
-  /** Absolute center-to-center distance on the cross axis. */
+  /** Edge-to-edge gap on the cross axis; `0` when the rects overlap (aligned). */
   crossDistance: number
-  /** Rects overlap on the cross axis (gets the mild cross penalty when scored). */
+  /** Rects overlap on the cross axis — directly in the origin's row/column. */
   aligned: boolean
-  /** Ahead of the origin and inside the 45° cone (or cross-aligned). */
-  inCone: boolean
   /**
    * Comparison score (lower wins); only present for `'winner'`/`'scored'`.
-   * Forward pass: `primaryDistance + crossDistance * weight`. Wrap pass: the
-   * primary term is the distance from the far opposite edge instead.
+   * Forward pass: `max(0, primaryDistance) + crossDistance × CROSS_AXIS_WEIGHT`.
+   * Wrap pass: distance from the far opposite edge plus the cross offset.
    */
   score?: number
 }
@@ -107,15 +119,11 @@ type Explained = {
   explanation: NavCandidateExplanation
 }
 
-function scorePool(
-  origin: Projected,
-  pool: Explained[],
-  primaryDistOf: (c: Projected) => number,
-): Explained | null {
+function pickWinner(pool: Explained[], scoreOf: (c: Explained) => number): Explained | null {
   let winner: Explained | null = null
   let winnerScore = Infinity
   for (const entry of pool) {
-    const s = score(origin, entry.projected, primaryDistOf(entry.projected))
+    const s = scoreOf(entry)
     entry.explanation.verdict = 'scored'
     entry.explanation.score = s
     // Strict `<` keeps the earliest-registered candidate on ties.
@@ -144,33 +152,31 @@ export function explainNext(
 
   const entries: Explained[] = candidates.map((candidate) => {
     const projected = project(candidate, direction)
-    const primaryDistance = projected.primary - origin.primary
-    const aligned = crossAligned(origin, projected)
-    const crossDistance = Math.abs(projected.cross - origin.cross)
+    const overlap = crossOverlap(origin, projected)
     return {
       projected,
       explanation: {
         id: projected.id,
         verdict: 'behind',
-        primaryDistance,
-        crossDistance,
-        aligned,
-        inCone: primaryDistance > EPSILON && (crossDistance <= primaryDistance || aligned),
+        // Gap from the origin's leading (far) edge to the candidate's near edge.
+        primaryDistance: projected.near - origin.far,
+        crossDistance: Math.max(0, -overlap),
+        aligned: overlap >= EPSILON,
       },
     }
   })
 
-  const ahead = entries.filter((e) => e.explanation.primaryDistance > EPSILON)
+  // "Ahead" means the candidate clears the origin's leading edge — it is
+  // genuinely in the pressed direction, not merely centered that way.
+  const ahead = entries.filter((e) => e.explanation.primaryDistance >= -EPSILON)
 
   if (ahead.length > 0) {
-    const inCone = ahead.filter((e) => e.explanation.inCone)
-    const pool = inCone.length > 0 ? inCone : ahead
-    if (inCone.length > 0) {
-      for (const e of ahead) {
-        if (!e.explanation.inCone) e.explanation.verdict = 'outside-cone'
-      }
-    }
-    const winner = scorePool(origin, pool, (c) => c.primary - origin.primary)
+    const winner = pickWinner(
+      ahead,
+      (e) =>
+        Math.max(0, e.explanation.primaryDistance) +
+        e.explanation.crossDistance * CROSS_AXIS_WEIGHT,
+    )
     return {
       target: winner?.explanation.id ?? null,
       mode: winner ? 'forward' : 'none',
@@ -179,22 +185,25 @@ export function explainNext(
   }
 
   if (options.wrap) {
-    // Wrap targets must lie behind the origin and stay near it on the cross
-    // axis — otherwise there is nothing along this axis to wrap to and the
-    // move is a no-op.
+    // Wrap targets must lie fully behind the origin and stay near it on the
+    // cross axis — otherwise there is nothing along this axis to wrap to and
+    // the move is a no-op.
+    const crossSize = origin.crossEnd - origin.crossStart
     const nearCross = (e: Explained) =>
-      e.explanation.aligned ||
-      e.explanation.crossDistance <= (origin.crossEnd - origin.crossStart) * WRAP_CROSS_TOLERANCE
-    const behind = entries.filter((e) => e.explanation.primaryDistance < -EPSILON)
+      e.explanation.aligned || e.explanation.crossDistance <= crossSize * WRAP_CROSS_TOLERANCE
+    const behind = entries.filter((e) => e.projected.far <= origin.near + EPSILON)
     const pool = behind.filter(nearCross)
     for (const e of behind) {
       if (!nearCross(e)) e.explanation.verdict = 'wrap-excluded'
     }
     if (pool.length > 0) {
-      // Treat distance from the far opposite edge as the primary distance,
-      // so the "first" trigger on the other side (best cross alignment) wins.
-      const minPrimary = Math.min(...pool.map((e) => e.projected.primary))
-      const winner = scorePool(origin, pool, (c) => c.primary - minPrimary)
+      // Distance from the far opposite edge is the primary term, so the trigger
+      // nearest the other side (best cross alignment breaks ties) wins.
+      const minNear = Math.min(...pool.map((e) => e.projected.near))
+      const winner = pickWinner(
+        pool,
+        (e) => e.projected.near - minNear + e.explanation.crossDistance,
+      )
       return {
         target: winner?.explanation.id ?? null,
         mode: winner ? 'wrap' : 'none',
@@ -212,13 +221,15 @@ export function explainNext(
  * Candidates must exclude the origin, disabled triggers, and zero-size rects.
  * They are expected in registration order (ties go to the earliest).
  *
- * Algorithm: filter to the half-plane in the movement direction, prefer
- * candidates inside a 45° cone (or overlapping on the cross axis), score by
- * `primaryDist + crossDist * weight` and take the minimum. With `wrap`, an
- * empty half-plane instead picks the candidate nearest the opposite edge —
- * but only among candidates behind the origin on the movement axis that are
- * cross-aligned or within `WRAP_CROSS_TOLERANCE` of it; if the current
- * row/column has nothing to cycle to, the move is a no-op.
+ * Algorithm (the one browsers and game engines use — edge projection, not
+ * center distance): keep only candidates whose leading edge clears the origin's
+ * leading edge in the movement direction, then take the one that minimizes
+ * `forwardGap + crossGap × CROSS_AXIS_WEIGHT`, where `crossGap` is `0` while the
+ * rects overlap on the cross axis. With `wrap`, an empty half-plane instead
+ * picks the candidate nearest the opposite edge — but only among candidates
+ * fully behind the origin that are cross-aligned or within
+ * `WRAP_CROSS_TOLERANCE`; if the current row/column has nothing to cycle to, the
+ * move is a no-op.
  *
  * Use `explainNext` for the same decision with its reasoning exposed.
  */

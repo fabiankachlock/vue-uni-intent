@@ -96,9 +96,10 @@ describe('findNext', () => {
     })
   })
 
-  describe('cone preference', () => {
-    it('picks an off-cone candidate when the cone is empty', () => {
-      // Staggered: b is far right and one row down (outside the 45° cone, not aligned).
+  describe('alignment preference', () => {
+    it('picks a lone off-axis candidate ahead', () => {
+      // b is far right and well below — no cone gate, so it still wins as the
+      // only thing ahead.
       const a: NavCandidate = { id: 'a', rect: rect(0, 0) }
       const b: NavCandidate = { id: 'b', rect: rect(200, 300) }
       expect(findNext(a, [b], 'right')).toBe('b')
@@ -149,12 +150,12 @@ describe('explainNext', () => {
 
     const winner = verdictOf(explanation, 'f')!
     expect(winner.verdict).toBe('winner')
-    // Centers are 120px apart on the row, perfectly aligned.
-    expect(winner.primaryDistance).toBe(120)
+    // Edge gap on the row: e.right (220) to f.left (240) = 20; same row → no
+    // cross offset, so the score is that gap.
+    expect(winner.primaryDistance).toBe(20)
     expect(winner.crossDistance).toBe(0)
     expect(winner.aligned).toBe(true)
-    expect(winner.inCone).toBe(true)
-    expect(winner.score).toBe(120)
+    expect(winner.score).toBe(20)
 
     // Everything left of (or level with) the origin is behind and unscored.
     expect(verdictOf(explanation, 'd')!.verdict).toBe('behind')
@@ -162,37 +163,44 @@ describe('explainNext', () => {
     expect(verdictOf(explanation, 'd')!.score).toBeUndefined()
   })
 
-  it('marks ahead-but-off-cone candidates as outside-cone', () => {
+  it('scores every candidate ahead, off-axis ones included', () => {
     const a: NavCandidate = { id: 'a', rect: rect(0, 0) }
     const aligned: NavCandidate = { id: 'aligned', rect: rect(400, 0) }
-    // Closer center distance, but below the 45° cone and not cross-aligned.
+    // Closer forward distance, but well off the row — competes and loses on the
+    // cross² / primary penalty rather than being gated out.
     const unaligned: NavCandidate = { id: 'unaligned', rect: rect(150, 200) }
     const explanation = explainNext(a, [aligned, unaligned], 'right')
     expect(explanation.target).toBe('aligned')
-    expect(verdictOf(explanation, 'unaligned')!.verdict).toBe('outside-cone')
-    expect(verdictOf(explanation, 'unaligned')!.score).toBeUndefined()
+
+    const off = verdictOf(explanation, 'unaligned')!
+    expect(off.verdict).toBe('scored')
+    expect(off.aligned).toBe(false)
+    // Edge gaps: 50px past a.right, 160px below the row → 50 + 160×2 = 370,
+    // beaten by "aligned" at a 300px gap dead ahead.
+    expect(off.crossDistance).toBe(160)
+    expect(off.score).toBe(370)
   })
 
-  it('scores all ahead candidates when the cone is empty', () => {
-    const a: NavCandidate = { id: 'a', rect: rect(0, 0) }
-    const b: NavCandidate = { id: 'b', rect: rect(200, 300) }
-    const explanation = explainNext(a, [b], 'right')
-    expect(explanation.target).toBe('b')
-    const winner = verdictOf(explanation, 'b')!
-    expect(winner.verdict).toBe('winner')
-    expect(winner.inCone).toBe(false)
+  it('keeps a small focus-lift from hijacking the perpendicular direction', () => {
+    // A focused cell lifted 12px up (a hover/focus animation). Pressing down
+    // must still reach the cell directly below, not the same-row neighbor that
+    // is now a few px "ahead". This is what the cross²/primary term guarantees.
+    const origin: NavCandidate = { id: 'origin', rect: { x: 120, y: 88, width: 100, height: 40 } }
+    const below: NavCandidate = { id: 'below', rect: rect(120, 200) }
+    const sideways: NavCandidate = { id: 'sideways', rect: rect(0, 100) }
+    expect(findNext(origin, [below, sideways], 'down')).toBe('below')
   })
 
   it('explains wrap decisions', () => {
     const explanation = explainNext(grid.c!, others('c'), 'right', { wrap: true })
     expect(explanation.target).toBe('a')
     expect(explanation.mode).toBe('wrap')
-    // Both same-row candidates compete for the wrap; "a" is nearest the far edge.
+    // Same-row candidates compete for the wrap; "a" is nearest the far edge.
     expect(verdictOf(explanation, 'a')!.verdict).toBe('winner')
     expect(verdictOf(explanation, 'b')!.verdict).toBe('scored')
-    // Other rows are behind but too far off the cross axis to wrap to.
-    expect(verdictOf(explanation, 'e')!.verdict).toBe('wrap-excluded')
-    // "f" sits at the same primary coordinate — neither ahead nor behind.
+    // The bottom row is behind but too far off the cross axis to wrap to.
+    expect(verdictOf(explanation, 'g')!.verdict).toBe('wrap-excluded')
+    // "f" overlaps the origin's column — neither cleanly ahead nor behind.
     expect(verdictOf(explanation, 'f')!.verdict).toBe('behind')
   })
 

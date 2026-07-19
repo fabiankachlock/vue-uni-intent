@@ -10,11 +10,51 @@ Everything is imported from `vue-uni-intent`.
 
 Creates the Vue plugin. Install it with `app.use(...)`.
 
-| Option         | Type                    | Default   | Description                                                        |
-| -------------- | ----------------------- | --------- | ----------------------------------------------------------------- |
-| `adapters`     | `InputAdapter[]`        | —         | Input sources to install. Required and explicit.                  |
-| `wrap`         | `boolean`               | `false`   | Wrap around to the opposite edge when navigating past the last trigger. |
-| `initialFocus` | `"first" \| "none"`     | `"first"` | Initial focus strategy for the root layer.                        |
+| Option         | Type                                    | Default   | Description                                                        |
+| -------------- | --------------------------------------- | --------- | ----------------------------------------------------------------- |
+| `adapters`     | `InputAdapter[]`                        | —         | Input sources to install. Required and explicit.                  |
+| `wrap`         | `boolean`                               | `false`   | Wrap around to the opposite edge when navigating past the last trigger. |
+| `initialFocus` | `"first" \| "none"`                     | `"first"` | Initial focus strategy for the root layer.                        |
+| `scroll`       | `boolean \| ScrollIntoViewOptions`      | `true`    | How the focused trigger is scrolled into view (see [Scrolling](#scrolling)). |
+| `scrollMargin` | `number \| { top?, right?, bottom?, left? }` | —    | Keep-clear margin (px) around focus when scrolled in — clears a sticky header (see [Scrolling](#scrolling)). |
+| `debug`        | `boolean \| { hotkey?: KeyShortcut }`   | `false`   | Enable the spatial-navigation debug overlay, toggled by `Ctrl+Alt+D` (or a custom `hotkey`). |
+
+### Navigation
+
+Navigation is **edge-based** — the approach browsers (Blink, the CSS
+spatial-navigation spec) and game engines use, never center-to-center. Pressing
+a direction keeps only the triggers whose leading edge clears the origin's
+leading edge on the movement axis, then picks the one that minimizes
+`forwardGap + crossGap × 2`, where `crossGap` is `0` while the rects overlap on
+the cross axis. Reading rectangle edges is what makes it match what you see: a
+full-bleed element has nothing to its left/right, a lifted focus or sub-pixel
+stagger can't divert a straight press sideways, and a pinned header can't win on
+proximity of centers. `findNext` / `explainNext` expose it as a pure function.
+
+### Scrolling
+
+Whenever focus moves, the core gives the trigger real focus with `preventScroll`
+and then scrolls it into view itself, so the behavior is the same across
+keyboard, mouse, and gamepad.
+
+- `scroll: true` (default) — `element.scrollIntoView({ block: "nearest", inline: "nearest" })`.
+- `scroll: false` — never scroll; do it yourself in `onFocus`.
+- `scroll: ScrollIntoViewOptions` — passed straight through, e.g. `{ block: "center" }`.
+
+A **sticky header** otherwise parks the target flush against the top, under the
+header. Clear it with `scrollMargin` — a keep-clear margin the core applies as
+the trigger's `scroll-margin` (which `scrollIntoView` honors), so no CSS is
+needed:
+
+```ts
+createUniIntent({
+  /* … */
+  scrollMargin: { top: 64 }, // header height; or a number for all four sides
+});
+```
+
+Equivalently, set `scroll-margin` on the triggers or `scroll-padding` on the
+scroll container in CSS and leave `scrollMargin` unset.
 
 ## `useTrigger(options)`
 
@@ -108,6 +148,27 @@ Scopes descendant triggers to a new focus layer for the component's lifetime.
 
 `ROOT_LAYER_ID` is exported for referencing the always-present base layer.
 
+## `useAvailableInputs()`
+
+Reactively reports which input sources can be used right now, so the UI can
+adapt (button-prompt glyphs, controller badges, hiding keyboard hints on touch).
+
+- **Returns:** `{ available, keyboard, mouse, touch, gamepad, has }`.
+  - `available` — `ComputedRef<ReadonlySet<string>>` of usable source names.
+  - `keyboard` / `mouse` / `touch` / `gamepad` — `ComputedRef<boolean>` for the
+    built-in sources.
+  - `has(name)` — reactive test for any source, including custom adapters.
+
+Availability reflects real device capability, reported by the installed adapters
+(so a source is never available unless its adapter is installed):
+
+| Source     | Available when                                                                                        |
+| ---------- | ----------------------------------------------------------------------------------------------------- |
+| `keyboard` | Inferred from the primary pointer (fine ⇒ yes, coarse ⇒ no), then confirmed on the first real keydown. |
+| `mouse`    | A fine pointer exists — `(any-pointer: fine)`.                                                          |
+| `touch`    | A coarse pointer exists — `(any-pointer: coarse)`. Independent of `mouse`.                              |
+| `gamepad`  | At least one controller is connected; toggles as controllers connect/disconnect.                       |
+
 ## Adapters
 
 - **`keyboardAdapter(options?)`** — `options.keys` maps `up` / `down` / `left` /
@@ -122,7 +183,9 @@ Adapters fire triggers via `ctx.activate(cause)` and
 `ctx.dispatchShortcut(input, cause)`, passing a [`TriggerCause`](#trigger-cause).
 They move focus via `ctx.move(direction, cause)` and `ctx.focus(id, cause)`,
 passing an optional [`FocusCause`](#focus-cause) that reaches the newly focused
-trigger's `onFocus`.
+trigger's `onFocus`. They report device availability via
+`ctx.setAvailable(name, boolean)`, which surfaces through
+[`useAvailableInputs()`](#useavailableinputs).
 
 ## Shortcut helpers
 
