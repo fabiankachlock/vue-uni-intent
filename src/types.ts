@@ -212,6 +212,15 @@ export type UniIntentOptions = {
    * `[keyboardAdapter(), mouseAdapter(), gamepadAdapter()]`
    */
   adapters: InputAdapter[]
+  /**
+   * Global on/off switch for input-driven focus control. When falsy, every
+   * adapter (keyboard, mouse, gamepad, custom) is ignored — navigation,
+   * activation, hover-focus, and shortcuts all no-op — while triggers stay
+   * registered and programmatic `useTrigger().focus()` / `.trigger()` keep
+   * working. Reactive: pass a `ref`/getter and toggle it at runtime to suspend
+   * and resume the whole system (e.g. while a modal owns the input). Default `true`.
+   */
+  enabled?: MaybeRefOrGetter<boolean>
   /** Wrap around to the opposite edge when navigating past the last trigger. Default `false`. */
   wrap?: boolean
   /** Initial focus strategy for the root layer. Default `"first"`. */

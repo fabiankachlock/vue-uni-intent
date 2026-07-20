@@ -1,3 +1,4 @@
+import { toValue } from 'vue'
 import type { AdapterContext } from './adapters/types'
 import { AvailabilityRegistry } from './availability'
 import { FocusManager } from './focus'
@@ -32,6 +33,8 @@ export type InputContext = {
   focus: FocusManager
   availability: AvailabilityRegistry
   options: ResolvedOptions
+  /** Whether input-driven focus control is currently enabled (the `enabled` option). */
+  isEnabled: () => boolean
   adapterContext: AdapterContext
   /**
    * Layers keyed by the component instance that declared them. Vue's
@@ -56,11 +59,23 @@ export function createInputContext(options: UniIntentOptions): InputContext {
   const availability = new AvailabilityRegistry()
   layers.attachFocus(focus)
 
+  // The `enabled` gate lives at the AdapterContext boundary — the single
+  // coupling surface for input sources — so one flag suspends every adapter
+  // uniformly while leaving programmatic focus/trigger untouched.
+  const isEnabled = () => toValue(options.enabled ?? true)
+
   const adapterContext: AdapterContext = {
-    move: (direction, cause) => focus.move(direction, cause),
-    activate: (cause) => focus.activate(cause),
-    focus: (id, cause) => focus.focusId(id, cause),
+    move: (direction, cause) => {
+      if (isEnabled()) focus.move(direction, cause)
+    },
+    activate: (cause) => {
+      if (isEnabled()) focus.activate(cause)
+    },
+    focus: (id, cause) => {
+      if (isEnabled()) focus.focusId(id, cause)
+    },
     dispatchShortcut: (input, cause) => {
+      if (!isEnabled()) return false
       const records = registry.inLayer(layers.activeLayer.value.id)
       const target = findShortcutTarget(input, records)
       if (!target) return false
@@ -68,6 +83,7 @@ export function createInputContext(options: UniIntentOptions): InputContext {
       return true
     },
     isRegisteredElement: (el) => {
+      if (!isEnabled()) return null
       const record = registry.byElement(el)
       if (!record || record.layerId !== layers.activeLayer.value.id) return null
       return record.id
@@ -81,6 +97,7 @@ export function createInputContext(options: UniIntentOptions): InputContext {
     focus,
     availability,
     options: resolved,
+    isEnabled,
     adapterContext,
     ownLayers: new WeakMap(),
   }

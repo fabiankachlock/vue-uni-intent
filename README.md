@@ -43,6 +43,7 @@ createApp(App)
           scrollSpeed: 1200, // px/sec at full deflection; invertScrollY to flip Y
         }),
       ],
+      enabled: true, // global on/off for input control; pass a ref/getter to toggle at runtime
       wrap: false, // wrap-around navigation at the edges
       initialFocus: "first", // or "none"
       scroll: true, // scroll the focused trigger into view; or ScrollIntoViewOptions / false
@@ -93,6 +94,22 @@ shape):
 
 ```ts
 useTrigger({ id: "row", onTrigger: open, scrollMargin: { top: 120 } });
+```
+
+### Enabling / disabling
+
+`enabled` is a global on/off switch for input-driven focus control. Pass a `ref`
+or getter and toggle it at runtime to suspend the whole system — while it is off,
+every adapter (keyboard, mouse, gamepad, custom) is ignored: navigation,
+activation, hover-focus, and shortcuts all no-op. Triggers stay registered and
+your own `useTrigger().focus()` / `.trigger()` keep working, so nothing is torn
+down — flip it back on and input resumes where it left off.
+
+```ts
+const enabled = ref(true);
+createUniIntent({ /* … */ enabled });
+// later, e.g. while a non-uni-intent overlay owns the input:
+enabled.value = false;
 ```
 
 ### Debug overlay

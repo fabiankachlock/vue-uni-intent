@@ -37,7 +37,11 @@ The pieces and their responsibilities:
 - `src/plugin.ts` — `createUniIntent()`. Builds the context, calls `adapter.setup()` on
   each adapter (client only; SSR skips listeners), wires focusin sync, tears down on unmount.
 - `src/context.ts` — assembles the `InputContext` and defines the `AdapterContext` the
-  adapters receive.
+  adapters receive. The global `enabled` option (a `MaybeRefOrGetter<boolean>`, default
+  `true`) is gated **here**, at the `AdapterContext` boundary: while falsy, `move` /
+  `activate` / `focus` / `dispatchShortcut` / `isRegisteredElement` all no-op, so every
+  adapter is suspended uniformly, but the `FocusManager` and programmatic
+  `useTrigger().focus()` / `.trigger()` are untouched.
 - `src/registry.ts` — `TriggerRegistry`. Reactive `Map` of `TriggerRecord`s keyed by
   `${layerId}-${id}`, plus an element→record map. `order` counter gives stable
   registration order (used for nav ties and shortcut precedence).

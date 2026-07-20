@@ -13,6 +13,7 @@ Creates the Vue plugin. Install it with `app.use(...)`.
 | Option         | Type                                    | Default   | Description                                                        |
 | -------------- | --------------------------------------- | --------- | ----------------------------------------------------------------- |
 | `adapters`     | `InputAdapter[]`                        | —         | Input sources to install. Required and explicit.                  |
+| `enabled`      | `MaybeRefOrGetter<boolean>`             | `true`    | Global on/off for input control. While falsy every adapter is ignored (nav, activation, hover-focus, shortcuts all no-op); triggers stay registered and programmatic `focus()` / `trigger()` still work. Pass a ref/getter to toggle at runtime. |
 | `wrap`         | `boolean`                               | `false`   | Wrap around to the opposite edge when navigating past the last trigger. |
 | `initialFocus` | `"first" \| "none"`                     | `"first"` | Initial focus strategy for the root layer.                        |
 | `scroll`       | `boolean \| ScrollIntoViewOptions`      | `true`    | How the focused trigger is scrolled into view (see [Scrolling](#scrolling)). |
