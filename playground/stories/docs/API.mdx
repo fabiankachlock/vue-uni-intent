@@ -34,12 +34,16 @@ proximity of centers. `findNext` / `explainNext` expose it as a pure function.
 ### Scrolling
 
 Whenever focus moves, the core gives the trigger real focus with `preventScroll`
-and then scrolls it into view itself, so the behavior is the same across
-keyboard, mouse, and gamepad.
+and then scrolls it into view itself.
 
 - `scroll: true` (default) — `element.scrollIntoView({ block: "nearest", inline: "nearest" })`.
 - `scroll: false` — never scroll; do it yourself in `onFocus`.
 - `scroll: ScrollIntoViewOptions` — passed straight through, e.g. `{ block: "center" }`.
+
+Mouse/touch focus (hover, click, tap) is exempt — the target is already under
+the pointer, so scrolling it would yank content out from under the cursor (and,
+in Firefox, the programmatic scroll re-fires `mouseover`, looping into a freeze).
+Only navigation, restore, autofocus, and programmatic focus scroll into view.
 
 A **sticky header** otherwise parks the target flush against the top, under the
 header. Clear it with `scrollMargin` — a keep-clear margin the core applies as
@@ -56,6 +60,10 @@ createUniIntent({
 Equivalently, set `scroll-margin` on the triggers or `scroll-padding` on the
 scroll container in CSS and leave `scrollMargin` unset.
 
+An individual trigger can override the global margin — e.g. one section under a
+taller header — by passing `scrollMargin` to `useTrigger` (same `number` /
+per-side shape); omit it to inherit the global option.
+
 ## `useTrigger(options)`
 
 Registers a controllable trigger.
@@ -70,6 +78,7 @@ Registers a controllable trigger.
 | `shortcuts` | `ShortcutDescriptor[]`        | Inputs that fire this trigger regardless of focus.              |
 | `disabled`  | `MaybeRefOrGetter<boolean>`   | Disabled triggers are skipped by navigation and shortcuts.      |
 | `autofocus` | `boolean`                     | Receive the layer's initial focus.                              |
+| `scrollMargin` | `number \| { top?, right?, bottom?, left? }` | Per-trigger keep-clear margin (px) when scrolled in; overrides the global `scrollMargin` (see [Scrolling](#scrolling)). |
 
 **Returns**
 
@@ -179,7 +188,9 @@ Availability reflects real device capability, reported by the installed adapters
   `repeatInterval`, `activateButton`. Opt-in right-stick scrolling via
   `rightStickScroll` (default `false`) scrolls the focused item's nearest
   scrollable container (horizontally and vertically, window fallback), tuned with
-  `scrollSpeed` (px/sec, default `1200`) and `invertScrollY`. Also exports
+  `scrollSpeed` (px/sec, default `1200`) and `invertScrollY`. Scrolling only
+  reads pads with the `"standard"` mapping — on non-standard pads axes 2/3 are
+  often an analog trigger resting at -1, not the right stick. Also exports
   `pollGamepads`, `createGamepadPollState` for custom polling loops.
 
 Adapters fire triggers via `ctx.activate(cause)` and

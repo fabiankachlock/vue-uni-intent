@@ -466,6 +466,76 @@ describe('useTrigger', () => {
     expect(onFocusB).toHaveBeenCalledWith({ source: 'core', via: 'cleanup' })
   })
 
+  it('does not scroll into view on mouse/pointer-driven focus', async () => {
+    // Firefox re-fires `mouseover` for whatever the still cursor ends up over
+    // after a programmatic scroll; scrolling hover focus would loop into a
+    // freeze. So pointer focus (target already under the cursor) never scrolls.
+    const scrollIntoView = vi.fn<Element['scrollIntoView']>()
+    Element.prototype.scrollIntoView = scrollIntoView
+    const { adapter, captured } = captureAdapter()
+    wrapper = mountWithPlugin(
+      defineComponent({
+        setup: () => () => [
+          h(TriggerButton, { options: { id: 'a', onTrigger: () => {} } }),
+          h(TriggerButton, { options: { id: 'b', onTrigger: () => {} }, x: 200 }),
+        ],
+      }),
+      [adapter],
+    )
+    await nextTick()
+    scrollIntoView.mockClear() // ignore the initial-focus scroll
+
+    captured.ctx!.focus('b', { source: 'mouse', via: 'focus' })
+    await nextTick()
+    expect(wrapper.find('[data-uni-focused]').attributes('data-uni-trigger')).toBe('b')
+    expect(scrollIntoView).not.toHaveBeenCalled()
+
+    // Non-pointer focus (navigation) still scrolls the target into view.
+    captured.ctx!.move('left')
+    await nextTick()
+    expect(wrapper.find('[data-uni-focused]').attributes('data-uni-trigger')).toBe('a')
+    expect(scrollIntoView).toHaveBeenCalledOnce()
+
+    delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView
+  })
+
+  it('applies a per-trigger scrollMargin, overriding the global one', async () => {
+    const scrollIntoView = vi.fn<Element['scrollIntoView']>()
+    Element.prototype.scrollIntoView = scrollIntoView
+    const { adapter, captured } = captureAdapter()
+    wrapper = mount(
+      defineComponent({
+        setup: () => () => [
+          // "a" inherits the global scrollMargin; "b" overrides it per-side.
+          h(TriggerButton, { options: { id: 'a', onTrigger: () => {} } }),
+          h(TriggerButton, {
+            options: { id: 'b', onTrigger: () => {}, scrollMargin: { top: 80 } },
+            x: 200,
+          }),
+        ],
+      }) as never,
+      {
+        attachTo: document.body,
+        global: {
+          plugins: [createUniIntent({ adapters: [adapter], scrollMargin: 16 })],
+        },
+      },
+    )
+    await nextTick()
+
+    // "a" holds initial focus and uses the global 16px margin on all sides.
+    const styleOf = (id: string) =>
+      (wrapper!.find(`[data-uni-trigger="${id}"]`).element as HTMLElement).style.scrollMargin
+    expect(styleOf('a')).toBe('16px')
+
+    // Navigating to "b" applies its own per-side margin instead.
+    captured.ctx!.move('right')
+    await nextTick()
+    expect(styleOf('b')).toBe('80px 0px 0px 0px')
+
+    delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView
+  })
+
   it('tears adapters down on app unmount', async () => {
     const { adapter, captured } = captureAdapter()
     wrapper = mountWithPlugin(

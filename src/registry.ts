@@ -11,6 +11,8 @@ export type TriggerRecord = {
   autofocus: boolean
   onTrigger: (cause: TriggerCause) => void
   onFocus?: (cause: FocusCause) => void
+  /** Resolved `scroll-margin` (CSS) to set on this element before scrolling; overrides the global option. */
+  scrollMargin?: string
   /** Registration counter for stable ordering and tie-breaking. */
   order: number
 }

@@ -39,7 +39,7 @@ createApp(App)
           deadzone: 0.5,
           initialRepeatDelay: 400,
           repeatInterval: 150,
-          rightStickScroll: true, // right stick scrolls the focused item's scroll container (default off)
+          rightStickScroll: true, // right stick scrolls the focused item's scroll container (default off; standard-mapping pads only)
           scrollSpeed: 1200, // px/sec at full deflection; invertScrollY to flip Y
         }),
       ],
@@ -86,6 +86,14 @@ createUniIntent({ /* … */ scrollMargin: { top: 64 } }); // or a number for all
 `scrollIntoView` honors), so it needs no CSS. Equivalently you can set
 `scroll-margin` on the triggers or `scroll-padding` on the scroll container
 yourself and leave `scrollMargin` unset.
+
+A single trigger can override the global margin — e.g. a section under a taller
+header — by passing `scrollMargin` to `useTrigger` (same `number` / per-side
+shape):
+
+```ts
+useTrigger({ id: "row", onTrigger: open, scrollMargin: { top: 120 } });
+```
 
 ### Debug overlay
 

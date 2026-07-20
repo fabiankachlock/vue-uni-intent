@@ -144,6 +144,16 @@ export type UseTriggerOptions = {
   disabled?: MaybeRefOrGetter<boolean>
   /** Receive the layer's initial focus. */
   autofocus?: boolean
+  /**
+   * Keep-clear margin around this trigger when it is scrolled into view, in
+   * pixels — same shape as the global `scrollMargin` option, applied as the
+   * element's `scroll-margin`. Overrides the global `scrollMargin` for this
+   * trigger only (e.g. a taller header above one section); omit to inherit it.
+   *
+   * - a number — the same margin on all four sides.
+   * - `{ top?, right?, bottom?, left? }` — per side (omitted sides are `0`).
+   */
+  scrollMargin?: number | { top?: number; right?: number; bottom?: number; left?: number }
 }
 
 export type UseTriggerReturn = {
@@ -231,7 +241,8 @@ export type UniIntentOptions = {
    * - `{ top?, right?, bottom?, left? }` — per side (omitted sides are `0`).
    *
    * Omit to not manage `scroll-margin` at all (any CSS `scroll-margin` you set
-   * on triggers still applies).
+   * on triggers still applies). Individual triggers can override this via
+   * `useTrigger({ scrollMargin })`.
    */
   scrollMargin?: number | { top?: number; right?: number; bottom?: number; left?: number }
   /**

@@ -1,4 +1,5 @@
 import { computed, getCurrentInstance, inject, onScopeDispose, ref, toValue, watch } from 'vue'
+import { resolveScrollMargin } from './context'
 import { INPUT_CONTEXT_KEY, LAYER_ID_KEY } from './keys'
 import { ROOT_LAYER_ID } from './layers'
 import type {
@@ -41,6 +42,7 @@ export function useTrigger(options: UseTriggerOptions): UseTriggerReturn {
     autofocus: options.autofocus ?? false,
     onTrigger: options.onTrigger,
     onFocus: options.onFocus,
+    scrollMargin: resolveScrollMargin(options.scrollMargin) ?? undefined,
   })
 
   watch(

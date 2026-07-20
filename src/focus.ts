@@ -139,7 +139,7 @@ export class FocusManager {
     if (this.focusedRecord.value !== record || !record.element) return
     record.element.setAttribute('data-uni-focused', '')
     record.element.tabIndex = 0
-    this.applyDomFocus(record.element)
+    this.applyDomFocus(record, true)
   }
 
   /**
@@ -165,19 +165,36 @@ export class FocusManager {
    * can't tuck the target under a sticky header; the follow-up `scrollIntoView`
    * honors CSS `scroll-margin`/`scroll-padding` and any consumer override.
    */
-  private applyDomFocus(element: HTMLElement): void {
+  private applyDomFocus(record: TriggerRecord, scroll: boolean): void {
+    const element = record.element
+    if (!element) return
     this.syncingDom = true
     try {
       element.focus({ preventScroll: true })
     } finally {
       this.syncingDom = false
     }
-    if (this.options.scroll && typeof element.scrollIntoView === 'function') {
+    if (scroll && this.options.scroll && typeof element.scrollIntoView === 'function') {
       // `scroll-margin` keeps the target off the scrollport edges — the way to
-      // clear a sticky header — and `scrollIntoView` honors it natively.
-      if (this.options.scrollMargin !== null) element.style.scrollMargin = this.options.scrollMargin
+      // clear a sticky header — and `scrollIntoView` honors it natively. A
+      // per-trigger `scrollMargin` overrides the global one for this element.
+      const margin = record.scrollMargin ?? this.options.scrollMargin
+      if (margin !== null) element.style.scrollMargin = margin
       element.scrollIntoView(this.options.scroll)
     }
+  }
+
+  /**
+   * Whether to scroll a freshly focused element into view. Pointer-driven focus
+   * (mouse hover/click, touch tap) targets an element already under the cursor —
+   * on-screen by construction — so scrolling it is not just pointless but a hard
+   * hazard: Firefox re-dispatches `mouseover` for whatever ends up under the
+   * still cursor after a programmatic scroll, which re-focuses, re-scrolls, and
+   * loops the page into a freeze. Only non-pointer focus (navigation, restore,
+   * autofocus, programmatic) can land off-screen and needs the scroll.
+   */
+  private shouldScroll(cause?: FocusCause): boolean {
+    return cause?.source !== 'mouse'
   }
 
   /** Keep focus valid when the focused trigger deregisters (e.g. `v-if`). */
@@ -238,7 +255,7 @@ export class FocusManager {
     if (record?.element) {
       record.element.setAttribute('data-uni-focused', '')
       record.element.tabIndex = 0
-      if (!skipNativeFocus) this.applyDomFocus(record.element)
+      if (!skipNativeFocus) this.applyDomFocus(record, this.shouldScroll(cause))
     }
 
     // Notify after DOM state is consistent, so handlers observing focus see it.

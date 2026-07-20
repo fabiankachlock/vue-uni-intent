@@ -17,7 +17,8 @@ export type ResolvedOptions = {
 
 const DEFAULT_SCROLL: ScrollIntoViewOptions = { block: 'nearest', inline: 'nearest' }
 
-function resolveScrollMargin(margin: UniIntentOptions['scrollMargin']): string | null {
+/** Normalize a `scrollMargin` option (number of px, or per-side) to a CSS `scroll-margin` string. */
+export function resolveScrollMargin(margin: UniIntentOptions['scrollMargin']): string | null {
   if (margin == null) return null
   if (typeof margin === 'number') return `${margin}px`
   const { top = 0, right = 0, bottom = 0, left = 0 } = margin
