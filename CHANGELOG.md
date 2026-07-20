@@ -4,6 +4,34 @@ All notable changes to `vue-uni-intent` are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-07-20
+
+### Added
+
+- **Global `enabled` switch** — a new `enabled` plugin option
+  (`MaybeRefOrGetter<boolean>`, default `true`) gates all adapter-driven input at
+  the `AdapterContext` boundary. While falsy, `move` / `activate` / `focus` /
+  `dispatchShortcut` are suspended uniformly across every adapter, while the
+  `FocusManager` and programmatic `useTrigger().focus()` / `.trigger()` keep
+  working.
+
+## [1.2.0] - 2026-07-20
+
+### Added
+
+- **Per-trigger scroll margin** — `useTrigger({ scrollMargin })` overrides the
+  global `scrollMargin` for that element, written to its `scroll-margin` so focus
+  scroll-into-view can clear sticky headers on a per-trigger basis.
+
+### Fixed
+
+- **Gamepad right-stick scroll fallback** — better fallback for the second-stick
+  scroll target when the focused item has no scrollable ancestor.
+
+## [1.1.1] - 2026-07-19
+
+Republish of 1.1.0 with no functional changes.
+
 ## [1.1.0] - 2026-07-19
 
 ### Added
@@ -63,6 +91,9 @@ Initial stable release.
 - Scroll-into-view control (`scroll` / `scrollMargin`) for focus moves.
 - Storybook documentation and live demos.
 
+[1.3.0]: https://github.com/fabiankachlock/vue-uni-intent/releases/tag/v1.3.0
+[1.2.0]: https://github.com/fabiankachlock/vue-uni-intent/releases/tag/v1.2.0
+[1.1.1]: https://github.com/fabiankachlock/vue-uni-intent/releases/tag/v1.1.1
 [1.1.0]: https://github.com/fabiankachlock/vue-uni-intent/releases/tag/v1.1.0
 [1.0.1]: https://github.com/fabiankachlock/vue-uni-intent/releases/tag/v1.0.1
 [1.0.0]: https://github.com/fabiankachlock/vue-uni-intent/releases/tag/v1.0.0
