@@ -1,6 +1,6 @@
 {
   "name": "vue-uni-intent",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Game-menu-style focus control for Vue 3, navigable by keyboard, mouse, and gamepad featuring spatial navigation using from DOM positions.",
   "keywords": [
     "vue",
