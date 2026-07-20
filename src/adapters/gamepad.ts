@@ -123,9 +123,20 @@ function canScroll(el: Element, axis: 'x' | 'y'): boolean {
   return axis === 'x' ? el.scrollWidth > el.clientWidth : el.scrollHeight > el.clientHeight
 }
 
+/** First element in document order that can scroll along a pushed axis, else `null`. */
+function firstScrollable(dx: number, dy: number): Element | null {
+  const all = document.body?.querySelectorAll('*')
+  if (!all) return null
+  for (const el of all) {
+    if ((dx !== 0 && canScroll(el, 'x')) || (dy !== 0 && canScroll(el, 'y'))) return el
+  }
+  return null
+}
+
 /**
- * Scroll the nearest scrollable ancestor of the focused trigger by `(dx, dy)`,
- * falling back to the window. Runs the whole chain in the axes actually being
+ * Scroll the nearest scrollable ancestor of the focused trigger by `(dx, dy)`.
+ * With no scrollable ancestor, falls back to the first scrollable element on the
+ * page, and finally the window. Runs the whole chain in the axes actually being
  * pushed so a vertical-only container isn't chosen for a horizontal push.
  */
 function scrollFocusedContainer(dx: number, dy: number): void {
@@ -136,6 +147,11 @@ function scrollFocusedContainer(dx: number, dy: number): void {
       return
     }
     el = el.parentElement
+  }
+  const fallback = firstScrollable(dx, dy)
+  if (fallback) {
+    fallback.scrollBy(dx, dy)
+    return
   }
   window.scrollBy(dx, dy)
 }
@@ -231,8 +247,9 @@ export function pollGamepads(
  * Gamepad input (standard mapping): D-pad and left stick navigate, `A`
  * activates, every other button press is dispatched as a `GamepadShortcut`.
  * With `rightStickScroll`, the right stick scrolls the focused item's nearest
- * scrollable container (window fallback). Polls via requestAnimationFrame while
- * at least one pad is connected.
+ * scrollable container (falling back to the first scrollable element on the
+ * page, then the window). Polls via requestAnimationFrame while at least one pad
+ * is connected.
  */
 export function gamepadAdapter(options: GamepadAdapterOptions = {}): InputAdapter {
   const resolved: ResolvedGamepadOptions = {

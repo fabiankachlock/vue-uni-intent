@@ -238,7 +238,28 @@ describe('pollGamepads right-stick scroll', () => {
     expect(container.scrollBy).toHaveBeenCalledWith(120, 0)
   })
 
-  it('falls back to the window when no ancestor is scrollable', () => {
+  it("falls back to the page's first scrollable element when no ancestor is scrollable", () => {
+    const container = document.createElement('div') // no overflow, not scrollable
+    const item = document.createElement('button')
+    item.setAttribute('data-uni-focused', '')
+    container.append(item)
+    document.body.append(container)
+    // A scrollable element elsewhere on the page, not an ancestor of the item.
+    const scrollable = document.createElement('div')
+    scrollable.style.overflowY = 'auto'
+    Object.defineProperty(scrollable, 'scrollHeight', { value: 500, configurable: true })
+    Object.defineProperty(scrollable, 'clientHeight', { value: 100, configurable: true })
+    scrollable.scrollBy = vi.fn<
+      (x: number, y: number) => void
+    >() as unknown as typeof scrollable.scrollBy
+    document.body.append(scrollable)
+    scroll([pad({ axes: [0, 0, 0, 1] })], 0)
+    scroll([pad({ axes: [0, 0, 0, 1] })], 100)
+    expect(scrollable.scrollBy).toHaveBeenCalledWith(0, 120)
+    expect(scrollBy).not.toHaveBeenCalled()
+  })
+
+  it('falls back to the window when nothing on the page is scrollable', () => {
     const container = document.createElement('div') // no overflow, not scrollable
     const item = document.createElement('button')
     item.setAttribute('data-uni-focused', '')

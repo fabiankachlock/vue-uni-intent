@@ -187,7 +187,8 @@ Availability reflects real device capability, reported by the installed adapters
 - **`gamepadAdapter(options?)`** — `deadzone`, `initialRepeatDelay`,
   `repeatInterval`, `activateButton`. Opt-in right-stick scrolling via
   `rightStickScroll` (default `false`) scrolls the focused item's nearest
-  scrollable container (horizontally and vertically, window fallback), tuned with
+  scrollable container (horizontally and vertically, falling back to the page's
+  first scrollable element, then the window), tuned with
   `scrollSpeed` (px/sec, default `1200`) and `invertScrollY`. Scrolling only
   reads pads with the `"standard"` mapping — on non-standard pads axes 2/3 are
   often an analog trigger resting at -1, not the right stick. Also exports

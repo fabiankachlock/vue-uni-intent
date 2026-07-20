@@ -78,7 +78,8 @@ The pieces and their responsibilities:
   `types.ts`. The gamepad adapter also offers opt-in right-stick scrolling
   (`rightStickScroll`, off by default; `scrollSpeed` / `invertScrollY` tune it) — a direct,
   frame-rate-independent DOM side-effect in its poll loop that scrolls the focused item's
-  nearest scrollable ancestor (found via `[data-uni-focused]`, both axes, `window` fallback),
+  nearest scrollable ancestor (found via `[data-uni-focused]`, both axes; falls back to the
+  page's first scrollable element, then `window`),
   deliberately **not** routed through `AdapterContext` since it touches neither focus nor the
   registry.
 - `src/index.ts` — the public entry. **Anything consumers use must be re-exported here.**
