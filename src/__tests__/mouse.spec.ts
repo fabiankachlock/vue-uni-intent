@@ -137,6 +137,30 @@ describe('mouseAdapter', () => {
     expect(menu.defaultPrevented).toBe(false)
   })
 
+  it.each([
+    ['back', 3],
+    ['forward', 4],
+  ])(
+    'suppresses native history navigation on %s-button mouseup when the shortcut matched',
+    (_label, button) => {
+      ctx.dispatchShortcut.mockReturnValue(true)
+      fire(document.body, 'mousedown', { button })
+      // The browser navigates history on mouseup, not mousedown — that's the one
+      // that must be cancelled.
+      const up = fire(document.body, 'mouseup', { button })
+      expect(up.defaultPrevented).toBe(true)
+      // Only the one immediately following mouseup is suppressed.
+      const secondUp = fire(document.body, 'mouseup', { button })
+      expect(secondUp.defaultPrevented).toBe(false)
+    },
+  )
+
+  it('leaves history navigation alone when no shortcut matched', () => {
+    fire(document.body, 'mousedown', { button: 3 })
+    const up = fire(document.body, 'mouseup', { button: 3 })
+    expect(up.defaultPrevented).toBe(false)
+  })
+
   it('removes listeners on teardown', () => {
     adapter.teardown()
     fire(innerSpan, 'click')

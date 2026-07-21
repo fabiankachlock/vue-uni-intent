@@ -46,6 +46,13 @@ export function mouseAdapter(): InputAdapter {
   let hoveredId: string | null = null
   /** Right-clicks consumed by a shortcut also suppress the context menu. */
   let suppressContextMenu = false
+  /**
+   * Back/forward clicks consumed by a shortcut also suppress the browser's
+   * native history navigation. That navigation is a default action of the
+   * `mouseup` (not `mousedown`) event, so a `mousedown` preventDefault can't
+   * cancel it — we flag it here and cancel the following `mouseup` instead.
+   */
+  let suppressHistoryNav = false
   let stopMouseMedia: (() => void) | null = null
   let stopTouchMedia: (() => void) | null = null
 
@@ -81,12 +88,21 @@ export function mouseAdapter(): InputAdapter {
     if (handled) {
       event.preventDefault()
       if (event.button === 2) suppressContextMenu = true
+      // 3 = Back, 4 = Forward: their history navigation fires on `mouseup`.
+      else if (event.button === 3 || event.button === 4) suppressHistoryNav = true
     }
   }
 
   const onContextMenu = (event: MouseEvent) => {
     if (suppressContextMenu) {
       suppressContextMenu = false
+      event.preventDefault()
+    }
+  }
+
+  const onMouseup = (event: MouseEvent) => {
+    if (suppressHistoryNav) {
+      suppressHistoryNav = false
       event.preventDefault()
     }
   }
@@ -107,6 +123,7 @@ export function mouseAdapter(): InputAdapter {
       context = ctx
       document.addEventListener('mouseover', onMouseover)
       document.addEventListener('mousedown', onMousedown)
+      document.addEventListener('mouseup', onMouseup)
       document.addEventListener('contextmenu', onContextMenu)
       document.addEventListener('click', onClick)
       // A fine pointer (mouse/trackpad) and a coarse pointer (touch) are
@@ -122,6 +139,7 @@ export function mouseAdapter(): InputAdapter {
     teardown() {
       document.removeEventListener('mouseover', onMouseover)
       document.removeEventListener('mousedown', onMousedown)
+      document.removeEventListener('mouseup', onMouseup)
       document.removeEventListener('contextmenu', onContextMenu)
       document.removeEventListener('click', onClick)
       stopMouseMedia?.()
@@ -133,6 +151,7 @@ export function mouseAdapter(): InputAdapter {
       context = null
       hoveredId = null
       suppressContextMenu = false
+      suppressHistoryNav = false
     },
   }
 }
